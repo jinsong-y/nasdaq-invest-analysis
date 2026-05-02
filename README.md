@@ -2,6 +2,8 @@
 
 纳指定投信号体系回测项目。项目目标是验证一套由 SMA 趋势、VIX/VXN 波动率、CNN Fear & Greed 情绪、NDXE/SOX 内部结构组成的定投节奏系统，是否能稳定跑赢机械定投。
 
+![纳指定投体系回测总结](reports/project_summary/assets/nasdaq_backtest_summary_image2.png)
+
 ## 快速入口
 
 | 内容 | 路径 |
@@ -30,4 +32,3 @@
 ```
 
 如只想查看现有结果，直接打开 `reports/` 下的 HTML 或 Markdown 文件即可。
-
