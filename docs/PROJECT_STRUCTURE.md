@@ -44,6 +44,7 @@
 | `src/version_a/grid.py` | 参数网格、排序、甜品区间判断 |
 | `src/version_a/metrics.py` | ROI、回撤、成本等指标汇总 |
 | `src/version_a/report.py` | Version A/B HTML 报告生成 |
+| `src/version_c/` | PE 百分位策略回测核心代码 |
 
 ## 脚本目录
 
@@ -53,6 +54,8 @@
 | `scripts/fetch_fund_nav.py` | 拉取基金历史净值 |
 | `scripts/run_version_a_backtest.py` | 运行 Version A 参数网络回测 |
 | `scripts/run_version_b_funds.py` | 运行 Version B 基金净值测算 |
+| `scripts/fetch_nasdaq100_pe.py` | 抓取纳指 PE 月度历史 |
+| `scripts/run_version_c_pe_backtest.py` | 运行 Version C PE 百分位回测 |
 
 ## 报告目录
 
@@ -60,6 +63,7 @@
 | :--- | :--- |
 | `reports/version_a/` | 正式 Version A 参数网络结果 |
 | `reports/version_b_funds/` | Version B 真实基金净值测算 |
+| `reports/version_c_pe/` | Version C PE 百分位回测结果 |
 | `reports/project_summary/` | 面向阅读的项目总结和总结图 |
 | `reports/version_a_smoke/` | 小样本冒烟测试产物 |
 | `reports/version_a_benchmark/` | 基准/历史中间产物 |
@@ -71,4 +75,3 @@
 3. `reports/version_b_funds/index.html`
 4. `docs/strategy/NASDQ_STRATEGY_V2.md`
 5. `docs/PROJECT_STRUCTURE.md`
-
