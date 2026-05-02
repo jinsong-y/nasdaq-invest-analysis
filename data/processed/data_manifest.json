@@ -1,0 +1,100 @@
+{
+  "generated_at_utc": "2026-05-02T05:43:54+00:00",
+  "sample_start_date": "2000-01-03",
+  "source_urls": {
+    "fred_graph_csv": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+    "finhacker_page": "https://www.finhacker.cz/en/fear-and-greed-index-historical-data-and-chart/",
+    "finhacker_history_api": "https://www.finhacker.cz/wp-content/custom-api/fear-greed-data.php",
+    "finhacker_live_json": "https://www.finhacker.cz/wp-content/data/fng-live.json"
+  },
+  "fred_series": [
+    {
+      "series_id": "NASDAQ100",
+      "output_name": "ndx",
+      "description": "Nasdaq 100 index level for SMA/trend gates"
+    },
+    {
+      "series_id": "VXNCLS",
+      "output_name": "vxn",
+      "description": "CBOE Nasdaq-100 volatility index"
+    },
+    {
+      "series_id": "VIXCLS",
+      "output_name": "vix",
+      "description": "CBOE S&P 500 volatility index"
+    },
+    {
+      "series_id": "NASDAQNDXE",
+      "output_name": "ndxe",
+      "description": "Nasdaq-100 equal weighted index"
+    },
+    {
+      "series_id": "NASDAQSOX",
+      "output_name": "sox",
+      "description": "PHLX semiconductor sector index"
+    }
+  ],
+  "outputs": {
+    "raw_fred_dir": "data/raw/fred",
+    "raw_cnn_dir": "data/raw/cnn",
+    "merged_indicators": "data/processed/market_indicators.csv",
+    "manifest": "data/processed/data_manifest.json",
+    "inventory": "docs/DATA_INVENTORY.md"
+  },
+  "coverage": {
+    "ndx": {
+      "rows": 6623,
+      "start": "2000-01-03",
+      "end": "2026-05-01"
+    },
+    "vxn": {
+      "rows": 6348,
+      "start": "2001-02-02",
+      "end": "2026-04-30"
+    },
+    "vix": {
+      "rows": 6651,
+      "start": "2000-01-03",
+      "end": "2026-04-30"
+    },
+    "ndxe": {
+      "rows": 5243,
+      "start": "2005-06-28",
+      "end": "2026-05-01"
+    },
+    "sox": {
+      "rows": 5323,
+      "start": "2004-09-02",
+      "end": "2026-05-01"
+    },
+    "cnn_fear_greed": {
+      "rows": 3855,
+      "start": "2011-01-03",
+      "end": "2026-05-01"
+    },
+    "spx": {
+      "rows": 3855,
+      "start": "2011-01-03",
+      "end": "2026-05-01"
+    },
+    "ndxe_ndx": {
+      "rows": 5243,
+      "start": "2005-06-28",
+      "end": "2026-05-01"
+    },
+    "sox_ndx": {
+      "rows": 5323,
+      "start": "2004-09-02",
+      "end": "2026-05-01"
+    }
+  },
+  "finhacker_live": {
+    "score": 67,
+    "timestamp": "2026-05-01T23:59:39.000Z",
+    "timestamp_et": "2026-05-01T19:59:39-04:00",
+    "timestamp_unix": 1777679979
+  },
+  "known_missing": {
+    "fund_nav": "The notes require actual QDII fund NAV for Version B, but no specific fund code/name is present in the repository."
+  }
+}

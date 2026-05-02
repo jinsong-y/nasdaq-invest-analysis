@@ -1,0 +1,82 @@
+[
+  {
+    "code": "270042",
+    "name": "广发纳斯达克100ETF联接人民币(QDII)A",
+    "rows": 3299,
+    "start": "2012-08-15",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/270042.csv"
+  },
+  {
+    "code": "000834",
+    "name": "大成纳斯达克100ETF联接(QDII)A",
+    "rows": 2754,
+    "start": "2014-11-13",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/000834.csv"
+  },
+  {
+    "code": "016452",
+    "name": "南方纳斯达克100指数发起(QDII)A",
+    "rows": 802,
+    "start": "2022-11-29",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/016452.csv"
+  },
+  {
+    "code": "161130",
+    "name": "易方达纳斯达克100ETF联接(QDII-LOF)A人民币",
+    "rows": 2131,
+    "start": "2017-06-23",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/161130.csv"
+  },
+  {
+    "code": "040046",
+    "name": "华安纳斯达克100ETF联接(QDII)A",
+    "rows": 3092,
+    "start": "2013-08-02",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/040046.csv"
+  },
+  {
+    "code": "160213",
+    "name": "国泰纳斯达克100指数",
+    "rows": 3814,
+    "start": "2010-04-29",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/160213.csv"
+  },
+  {
+    "code": "539001",
+    "name": "建信纳斯达克100指数(QDII)A人民币",
+    "rows": 3613,
+    "start": "2010-09-14",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/539001.csv"
+  },
+  {
+    "code": "015299",
+    "name": "华夏纳斯达克100ETF发起式联接(QDII)A",
+    "rows": 981,
+    "start": "2022-04-14",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/015299.csv"
+  },
+  {
+    "code": "016055",
+    "name": "博时纳斯达克100ETF发起式联接(QDII)A人民币",
+    "rows": 911,
+    "start": "2022-07-26",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/016055.csv"
+  },
+  {
+    "code": "016532",
+    "name": "嘉实纳斯达克100ETF发起联接(QDII)A人民币",
+    "rows": 876,
+    "start": "2022-09-15",
+    "end": "2026-04-29",
+    "path": "data/processed/funds/016532.csv"
+  }
+]
