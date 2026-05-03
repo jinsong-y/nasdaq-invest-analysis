@@ -53,7 +53,7 @@ class MarketRegimeConfigTests(unittest.TestCase):
 
 import pandas as pd
 
-from src.market_regime.model import classify_latest, missing_inputs_for_row
+from src.market_regime.model import classify_daily, classify_latest, latest_summary, missing_inputs_for_row
 
 
 class MarketRegimeValidationTests(unittest.TestCase):
@@ -256,3 +256,57 @@ class MarketRegimeClassificationTests(unittest.TestCase):
         self.assertEqual("top_risk", result.market_regime)
         self.assertEqual("pause", result.dashboard_action)
         self.assertGreaterEqual(result.top_risk_score, 75.0)
+
+
+class MarketRegimeSummaryTests(unittest.TestCase):
+    def _frame(self):
+        rows = [
+            {
+                "ndx": 100.0,
+                "sma": 100.0,
+                "dist_sma": 0.0,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.50,
+                "vix_pctile": 0.50,
+                "cnn_fear_greed": 50.0,
+                "cnn_ma5": 50.0,
+                "ndxe_ndx": 0.35,
+                "ndxe_ma": 0.35,
+                "sox_ndx": 0.25,
+                "sox_ma": 0.25,
+            },
+            {
+                "ndx": 118.0,
+                "sma": 100.0,
+                "dist_sma": 0.18,
+                "vxn": 14.0,
+                "vix": 12.0,
+                "vxn_pctile": 0.12,
+                "vix_pctile": 0.10,
+                "cnn_fear_greed": 82.0,
+                "cnn_ma5": 80.0,
+                "ndxe_ndx": 0.36,
+                "ndxe_ma": 0.35,
+                "sox_ndx": 0.26,
+                "sox_ma": 0.25,
+            },
+        ]
+        return pd.DataFrame(rows, index=pd.to_datetime(["2026-04-29", "2026-04-30"]))
+
+    def test_classify_daily_marks_historical_missing_as_unscorable(self):
+        frame = self._frame()
+        frame.loc[pd.Timestamp("2026-04-29"), "vix"] = float("nan")
+        out = classify_daily(frame)
+        self.assertEqual("unscorable", out.iloc[0]["market_regime"])
+        self.assertEqual("overheated", out.iloc[1]["market_regime"])
+        self.assertEqual(0.0, out.iloc[0]["confidence_score"])
+
+    def test_latest_summary_contains_drivers_risks_inputs(self):
+        summary = latest_summary(self._frame())
+        self.assertEqual("2026-04-30", summary["as_of_date"])
+        self.assertEqual("overheated", summary["market_regime"])
+        self.assertIn("drivers", summary)
+        self.assertIn("risks", summary)
+        self.assertIn("inputs", summary)
+        self.assertIn("dashboard_action", summary)

@@ -74,6 +74,30 @@ def classify_latest(df: pd.DataFrame, config: DashboardConfig | None = None) -> 
     return result
 
 
+def classify_daily(df: pd.DataFrame, config: DashboardConfig | None = None) -> pd.DataFrame:
+    config = config or DashboardConfig()
+    rows = []
+    for date, row in df.iterrows():
+        rows.append(classify_row(row, date=pd.Timestamp(date), config=config, strict=False).to_row())
+    return pd.DataFrame(rows)
+
+
+def latest_summary(df: pd.DataFrame, config: DashboardConfig | None = None) -> dict[str, Any]:
+    result = classify_latest(df, config=config)
+    row = result.to_row()
+    return {
+        "as_of_date": row["date"],
+        "market_regime": result.market_regime,
+        "temperature_score": result.temperature_score,
+        "confidence_score": result.confidence_score,
+        "dashboard_action": result.dashboard_action,
+        "summary": _summary_text(result),
+        "drivers": _drivers(result),
+        "risks": _risks(result),
+        "inputs": result.inputs,
+    }
+
+
 def classify_row(
     row: pd.Series,
     *,
@@ -267,3 +291,47 @@ def _dashboard_action(market_regime: str, confidence_score: float, config: Dashb
     if market_regime == "top_risk":
         return "pause"
     return "unavailable"
+
+
+def _summary_text(result: RegimeResult) -> str:
+    labels = {
+        "panic_low": "Severe stress with low-market evidence.",
+        "stress_low": "Market stress and below-trend evidence.",
+        "recovery": "Repair signals improving after stress.",
+        "normal": "No dominant extreme signal.",
+        "warm": "Above-trend market with warmer conditions.",
+        "overheated": "Multiple overheat signals active.",
+        "top_risk": "Overheat with structural deterioration risk.",
+        "unscorable": "Required inputs missing.",
+    }
+    return labels[result.market_regime]
+
+
+def _drivers(result: RegimeResult) -> list[str]:
+    scores = [
+        ("undervaluation", result.undervaluation_score),
+        ("overheat", result.overheat_score),
+        ("top_risk", result.top_risk_score),
+        ("recovery", result.recovery_score),
+        ("trend", result.trend_score),
+        ("volatility", result.volatility_score),
+        ("sentiment", result.sentiment_score),
+        ("breadth", result.breadth_score),
+        ("semiconductor", result.semiconductor_score),
+    ]
+    return [name for name, score in sorted(scores, key=lambda item: item[1], reverse=True)[:3]]
+
+
+def _risks(result: RegimeResult) -> list[str]:
+    risks = []
+    if result.top_risk_score >= 60:
+        risks.append("top_risk")
+    if result.overheat_score >= 60:
+        risks.append("overheat")
+    if result.undervaluation_score >= 60:
+        risks.append("market_stress")
+    if result.confidence_score < 55:
+        risks.append("low_confidence")
+    if not risks:
+        risks.append("no_major_extreme")
+    return risks
