@@ -420,3 +420,23 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertNotIn("<img src=x onerror=alert(1)>", html)
             self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
             self.assertIn("&lt;img src=x onerror=alert(1)&gt;", html)
+
+
+class MarketRegimeWorkflowTests(unittest.TestCase):
+    def test_run_workflow_writes_outputs_for_complete_target_date(self):
+        from scripts.run_market_regime_dashboard import run_workflow
+
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            run_workflow(output_dir=output_dir, target_date="2026-04-30")
+            self.assertTrue((output_dir / "daily_regimes.csv").exists())
+            self.assertTrue((output_dir / "latest.json").exists())
+            self.assertTrue((output_dir / "index.html").exists())
+            self.assertIn("market_regime", (output_dir / "latest.json").read_text(encoding="utf-8"))
+
+    def test_run_workflow_fails_fast_for_latest_missing_volatility(self):
+        from scripts.run_market_regime_dashboard import run_workflow
+
+        with TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, "2026-05-01.*vix.*vxn"):
+                run_workflow(output_dir=Path(tmp), target_date="2026-05-01")
