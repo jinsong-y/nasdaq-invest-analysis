@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -94,10 +95,12 @@ class MarketRegimeValidationTests(unittest.TestCase):
             classify_latest(frame)
 
     def test_latest_classification_fails_when_required_latest_inputs_infinite(self):
-        frame = pd.DataFrame([self._valid_row()], index=pd.to_datetime(["2026-05-01"]))
-        frame.loc[pd.Timestamp("2026-05-01"), "vix"] = float("inf")
-        with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
-            classify_latest(frame)
+        for value in [float("inf"), float("-inf")]:
+            with self.subTest(value=value):
+                frame = pd.DataFrame([self._valid_row()], index=pd.to_datetime(["2026-05-01"]))
+                frame.loc[pd.Timestamp("2026-05-01"), "vix"] = value
+                with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
+                    classify_latest(frame)
 
 
 class MarketRegimeClassificationTests(unittest.TestCase):
@@ -316,6 +319,7 @@ class MarketRegimeSummaryTests(unittest.TestCase):
         self.assertIn("risks", summary)
         self.assertIn("inputs", summary)
         self.assertIn("dashboard_action", summary)
+        json.dumps(summary, allow_nan=False)
 
     def test_latest_summary_uses_max_date_for_unsorted_frame(self):
         frame = self._frame()
