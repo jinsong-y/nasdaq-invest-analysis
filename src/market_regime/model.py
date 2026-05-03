@@ -62,15 +62,15 @@ def _is_missing_or_invalid_input(value: object) -> bool:
         numeric_value = float(value)
     except (TypeError, ValueError):
         return True
-    return bool(np.isnan(numeric_value))
+    return not bool(np.isfinite(numeric_value))
 
 
 def classify_latest(df: pd.DataFrame, config: DashboardConfig | None = None) -> RegimeResult:
     if df.empty:
         raise ValueError("cannot classify empty market regime frame")
     config = config or DashboardConfig()
-    date = pd.Timestamp(df.index[-1])
-    result = classify_row(df.iloc[-1], date=date, config=config, strict=True)
+    date = pd.Timestamp(df.index.max())
+    result = classify_row(df.loc[date], date=date, config=config, strict=True)
     return result
 
 

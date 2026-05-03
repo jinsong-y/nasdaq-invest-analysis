@@ -93,6 +93,12 @@ class MarketRegimeValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
             classify_latest(frame)
 
+    def test_latest_classification_fails_when_required_latest_inputs_infinite(self):
+        frame = pd.DataFrame([self._valid_row()], index=pd.to_datetime(["2026-05-01"]))
+        frame.loc[pd.Timestamp("2026-05-01"), "vix"] = float("inf")
+        with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
+            classify_latest(frame)
+
 
 class MarketRegimeClassificationTests(unittest.TestCase):
     def _row(
@@ -310,3 +316,9 @@ class MarketRegimeSummaryTests(unittest.TestCase):
         self.assertIn("risks", summary)
         self.assertIn("inputs", summary)
         self.assertIn("dashboard_action", summary)
+
+    def test_latest_summary_uses_max_date_for_unsorted_frame(self):
+        frame = self._frame()
+        frame.index = pd.to_datetime(["2026-05-02", "2026-05-01"])
+        summary = latest_summary(frame)
+        self.assertEqual("2026-05-02", summary["as_of_date"])
