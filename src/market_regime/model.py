@@ -373,11 +373,11 @@ def _risks(result: RegimeResult, config: DashboardConfig) -> list[str]:
         risks.append("top_risk")
     elif result.top_risk_score >= config.top_risk_watch_threshold:
         risks.append("top_risk_watch")
-    if result.overheat_score >= 60:
+    if result.overheat_score >= config.overheat_threshold:
         risks.append("overheat")
-    if result.undervaluation_score >= 60:
+    if result.undervaluation_score >= config.stress_low_threshold:
         risks.append("market_stress")
-    if result.confidence_score < 55:
+    if result.confidence_score < config.low_confidence_threshold:
         risks.append("low_confidence")
     if not risks:
         risks.append("no_major_extreme")

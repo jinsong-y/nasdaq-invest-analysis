@@ -512,6 +512,74 @@ class MarketRegimeSummaryTests(unittest.TestCase):
         self.assertIn("top_risk", summary["risks"])
         self.assertNotIn("top_risk_watch", summary["risks"])
 
+    def test_latest_summary_risks_use_custom_overheat_threshold(self):
+        summary = self._summary_for_row(
+            {
+                "ndx": 118.0,
+                "sma": 100.0,
+                "dist_sma": 0.18,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.40,
+                "vix_pctile": 0.40,
+                "cnn_fear_greed": 76.0,
+                "cnn_ma5": 74.0,
+                "ndxe_ndx": 0.35,
+                "ndxe_ma": 0.35,
+                "sox_ndx": 0.25,
+                "sox_ma": 0.25,
+            },
+            config=DashboardConfig(overheat_threshold=50.0),
+        )
+
+        self.assertEqual("overheated", summary["market_regime"])
+        self.assertIn("overheat", summary["risks"])
+
+    def test_latest_summary_risks_use_stress_low_threshold(self):
+        summary = self._summary_for_row(
+            {
+                "ndx": 90.0,
+                "sma": 100.0,
+                "dist_sma": -0.10,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.80,
+                "vix_pctile": 0.78,
+                "cnn_fear_greed": 25.0,
+                "cnn_ma5": 26.0,
+                "ndxe_ndx": 0.35,
+                "ndxe_ma": 0.35,
+                "sox_ndx": 0.25,
+                "sox_ma": 0.25,
+            }
+        )
+
+        self.assertEqual("stress_low", summary["market_regime"])
+        self.assertIn("market_stress", summary["risks"])
+
+    def test_latest_summary_risks_use_custom_low_confidence_threshold(self):
+        summary = self._summary_for_row(
+            {
+                "ndx": 100.0,
+                "sma": 100.0,
+                "dist_sma": 0.0,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.50,
+                "vix_pctile": 0.50,
+                "cnn_fear_greed": 50.0,
+                "cnn_ma5": 50.0,
+                "ndxe_ndx": 0.35,
+                "ndxe_ma": 0.35,
+                "sox_ndx": 0.25,
+                "sox_ma": 0.25,
+            },
+            config=DashboardConfig(low_confidence_threshold=65.0),
+        )
+
+        self.assertEqual("normal", summary["market_regime"])
+        self.assertIn("low_confidence", summary["risks"])
+
 
 from tempfile import TemporaryDirectory
 
