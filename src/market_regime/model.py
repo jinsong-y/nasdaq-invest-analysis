@@ -90,6 +90,7 @@ def classify_daily(df: pd.DataFrame, config: DashboardConfig | None = None) -> p
 
 
 def latest_summary(df: pd.DataFrame, config: DashboardConfig | None = None) -> dict[str, Any]:
+    config = config or DashboardConfig()
     result = classify_latest(df, config=config)
     row = result.to_row()
     return {
@@ -100,7 +101,7 @@ def latest_summary(df: pd.DataFrame, config: DashboardConfig | None = None) -> d
         "dashboard_action": result.dashboard_action,
         "summary": _summary_text(result),
         "drivers": _drivers(result),
-        "risks": _risks(result),
+        "risks": _risks(result, config),
         "inputs": result.inputs,
     }
 
@@ -366,11 +367,11 @@ def _drivers(result: RegimeResult) -> list[str]:
     return [name for name, score in sorted(scores, key=lambda item: item[1], reverse=True)[:3]]
 
 
-def _risks(result: RegimeResult) -> list[str]:
+def _risks(result: RegimeResult, config: DashboardConfig) -> list[str]:
     risks = []
-    if result.top_risk_score >= 75:
+    if result.top_risk_score >= config.top_risk_threshold:
         risks.append("top_risk")
-    elif result.top_risk_score >= 70:
+    elif result.top_risk_score >= config.top_risk_watch_threshold:
         risks.append("top_risk_watch")
     if result.overheat_score >= 60:
         risks.append("overheat")

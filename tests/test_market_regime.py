@@ -371,6 +371,10 @@ class MarketRegimeClassificationTests(unittest.TestCase):
 
 
 class MarketRegimeSummaryTests(unittest.TestCase):
+    def _summary_for_row(self, row, *, config=None):
+        frame = pd.DataFrame([row], index=pd.to_datetime(["2026-04-30"]))
+        return latest_summary(frame, config=config)
+
     def _frame(self):
         rows = [
             {
@@ -437,6 +441,76 @@ class MarketRegimeSummaryTests(unittest.TestCase):
         frame.index = pd.to_datetime(["2026-05-02", "2026-05-01"])
         summary = latest_summary(frame)
         self.assertEqual("2026-05-02", summary["as_of_date"])
+
+    def test_latest_summary_reports_warm_recovery(self):
+        summary = self._summary_for_row(
+            {
+                "ndx": 110.0,
+                "sma": 100.0,
+                "dist_sma": 0.10,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.40,
+                "vix_pctile": 0.38,
+                "cnn_fear_greed": 66.0,
+                "cnn_ma5": 48.0,
+                "ndxe_ndx": 0.39,
+                "ndxe_ma": 0.35,
+                "sox_ndx": 0.29,
+                "sox_ma": 0.25,
+            }
+        )
+
+        self.assertEqual("warm_recovery", summary["market_regime"])
+        self.assertEqual("normal_dca", summary["dashboard_action"])
+        self.assertEqual("Repair signals are strong, but conditions are already warm.", summary["summary"])
+
+    def test_latest_summary_reports_top_risk_watch(self):
+        summary = self._summary_for_row(
+            {
+                "ndx": 118.0,
+                "sma": 100.0,
+                "dist_sma": 0.18,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.10,
+                "vix_pctile": 0.10,
+                "cnn_fear_greed": 75.0,
+                "cnn_ma5": 72.0,
+                "ndxe_ndx": 0.3528,
+                "ndxe_ma": 0.36,
+                "sox_ndx": 0.245,
+                "sox_ma": 0.25,
+            }
+        )
+
+        self.assertEqual("top_risk_watch", summary["market_regime"])
+        self.assertEqual("pause_new_buy", summary["dashboard_action"])
+        self.assertIn("top_risk_watch", summary["risks"])
+
+    def test_latest_summary_risks_use_custom_top_risk_threshold(self):
+        summary = self._summary_for_row(
+            {
+                "ndx": 118.0,
+                "sma": 100.0,
+                "dist_sma": 0.18,
+                "vxn": 20.0,
+                "vix": 18.0,
+                "vxn_pctile": 0.10,
+                "vix_pctile": 0.10,
+                "cnn_fear_greed": 75.0,
+                "cnn_ma5": 72.0,
+                "ndxe_ndx": 0.3528,
+                "ndxe_ma": 0.36,
+                "sox_ndx": 0.245,
+                "sox_ma": 0.25,
+            },
+            config=DashboardConfig(top_risk_threshold=72.0),
+        )
+
+        self.assertEqual("top_risk", summary["market_regime"])
+        self.assertIn("top_risk", summary["risks"])
+        self.assertNotIn("top_risk_watch", summary["risks"])
 
 
 from tempfile import TemporaryDirectory
