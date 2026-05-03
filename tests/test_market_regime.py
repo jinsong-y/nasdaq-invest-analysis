@@ -241,6 +241,49 @@ class MarketRegimeClassificationTests(unittest.TestCase):
         self.assertNotEqual("recovery", falling_sentiment.market_regime)
         self.assertGreater(rising_sentiment.recovery_score, falling_sentiment.recovery_score)
 
+    def test_warm_recovery_when_repair_is_high_but_price_extended(self):
+        result = self._classify(
+            self._row(
+                ndx=110.0,
+                sma=100.0,
+                dist_sma=0.10,
+                vxn_pctile=0.40,
+                vix_pctile=0.38,
+                cnn_fear_greed=66.0,
+                cnn_ma5=48.0,
+                ndxe_ndx=0.39,
+                ndxe_ma=0.35,
+                sox_ndx=0.29,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("warm_recovery", result.market_regime)
+        self.assertEqual("normal_dca", result.dashboard_action)
+        self.assertGreaterEqual(result.recovery_score, 55.0)
+        self.assertGreaterEqual(result.inputs["dist_sma"], 0.08)
+
+    def test_recovery_when_repair_is_high_and_gates_pass(self):
+        result = self._classify(
+            self._row(
+                ndx=104.0,
+                sma=100.0,
+                dist_sma=0.04,
+                vxn_pctile=0.45,
+                vix_pctile=0.42,
+                cnn_fear_greed=58.0,
+                cnn_ma5=42.0,
+                ndxe_ndx=0.38,
+                ndxe_ma=0.35,
+                sox_ndx=0.28,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("recovery", result.market_regime)
+        self.assertEqual("normal_dca", result.dashboard_action)
+        self.assertLess(result.temperature_score, 65.0)
+        self.assertLess(result.top_risk_score, 55.0)
+        self.assertLess(result.overheat_score, 50.0)
+
     def test_normal_fixture(self):
         result = self._classify(self._row())
         self.assertEqual("normal", result.market_regime)
@@ -263,7 +306,7 @@ class MarketRegimeClassificationTests(unittest.TestCase):
             )
         )
         self.assertEqual("warm", result.market_regime)
-        self.assertEqual("reduce", result.dashboard_action)
+        self.assertEqual("reduce_light", result.dashboard_action)
         self.assertLess(result.recovery_score, 55.0)
 
     def test_overheated_fixture(self):
@@ -304,6 +347,27 @@ class MarketRegimeClassificationTests(unittest.TestCase):
         self.assertEqual("top_risk", result.market_regime)
         self.assertEqual("pause", result.dashboard_action)
         self.assertGreaterEqual(result.top_risk_score, 75.0)
+
+    def test_top_risk_watch_between_watch_and_full_threshold(self):
+        result = self._classify(
+            self._row(
+                ndx=118.0,
+                sma=100.0,
+                dist_sma=0.18,
+                vxn_pctile=0.10,
+                vix_pctile=0.10,
+                cnn_fear_greed=75.0,
+                cnn_ma5=72.0,
+                ndxe_ndx=0.33,
+                ndxe_ma=0.36,
+                sox_ndx=0.23,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("top_risk_watch", result.market_regime)
+        self.assertEqual("pause_new_buy", result.dashboard_action)
+        self.assertGreaterEqual(result.top_risk_score, 70.0)
+        self.assertLess(result.top_risk_score, 75.0)
 
 
 class MarketRegimeSummaryTests(unittest.TestCase):

@@ -184,9 +184,9 @@ def _scorable_result(row: pd.Series, date: pd.Timestamp, config: DashboardConfig
 
     divergence = 0.0
     if breadth_delta < 0:
-        divergence += min(25.0, abs(breadth_delta) * 500.0)
+        divergence += min(10.0, abs(breadth_delta) * 500.0)
     if semiconductor_delta < 0:
-        divergence += min(25.0, abs(semiconductor_delta) * 500.0)
+        divergence += min(10.0, abs(semiconductor_delta) * 500.0)
     top_risk_score = _clip_score(overheat_score * 0.75 + divergence)
 
     recovery_score = _clip_score(
@@ -212,6 +212,7 @@ def _scorable_result(row: pd.Series, date: pd.Timestamp, config: DashboardConfig
         temperature_score=temperature_score,
         vol_high=vol_high,
         cnn=cnn,
+        dist_sma=dist_sma,
     )
     action = _dashboard_action(market_regime, confidence_score, config)
     inputs = {column: _float_or_nan(row.get(column)) for column in REQUIRED_COLUMNS}
@@ -258,6 +259,24 @@ def _confidence_score(
     return _clip_score(55.0 + strongest * 0.25 + separation * 0.20)
 
 
+def _is_recovery_eligible(
+    config: DashboardConfig,
+    *,
+    recovery_score: float,
+    temperature_score: float,
+    top_risk_score: float,
+    overheat_score: float,
+    dist_sma: float,
+) -> bool:
+    return (
+        recovery_score >= config.recovery_threshold
+        and temperature_score < config.recovery_temperature_ceiling
+        and top_risk_score < config.recovery_top_risk_ceiling
+        and overheat_score < config.recovery_overheat_ceiling
+        and dist_sma < config.recovery_dist_sma_ceiling
+    )
+
+
 def _market_regime(
     config: DashboardConfig,
     *,
@@ -268,17 +287,29 @@ def _market_regime(
     temperature_score: float,
     vol_high: float,
     cnn: float,
+    dist_sma: float,
 ) -> str:
-    if top_risk_score >= config.top_risk_threshold:
-        return "top_risk"
-    if overheat_score >= config.overheat_threshold:
-        return "overheated"
     if undervaluation_score >= config.panic_low_threshold and vol_high >= 0.90 and cnn <= 15.0:
         return "panic_low"
     if undervaluation_score >= config.stress_low_threshold:
         return "stress_low"
-    if recovery_score >= config.recovery_threshold:
+    if top_risk_score >= config.top_risk_threshold:
+        return "top_risk"
+    if top_risk_score >= config.top_risk_watch_threshold:
+        return "top_risk_watch"
+    if overheat_score >= config.overheat_threshold:
+        return "overheated"
+    if _is_recovery_eligible(
+        config,
+        recovery_score=recovery_score,
+        temperature_score=temperature_score,
+        top_risk_score=top_risk_score,
+        overheat_score=overheat_score,
+        dist_sma=dist_sma,
+    ):
         return "recovery"
+    if recovery_score >= config.recovery_threshold:
+        return "warm_recovery"
     if temperature_score >= config.warm_threshold:
         return "warm"
     return "normal"
@@ -291,10 +322,14 @@ def _dashboard_action(market_regime: str, confidence_score: float, config: Dashb
         return "add_strong"
     if market_regime == "stress_low":
         return "add_light"
-    if market_regime in {"recovery", "normal"}:
+    if market_regime in {"recovery", "normal", "warm_recovery"}:
         return "normal_dca"
-    if market_regime in {"warm", "overheated"}:
+    if market_regime == "warm":
+        return "reduce_light"
+    if market_regime == "overheated":
         return "reduce"
+    if market_regime == "top_risk_watch":
+        return "pause_new_buy"
     if market_regime == "top_risk":
         return "pause"
     return "unavailable"
@@ -305,9 +340,11 @@ def _summary_text(result: RegimeResult) -> str:
         "panic_low": "Severe stress with low-market evidence.",
         "stress_low": "Market stress and below-trend evidence.",
         "recovery": "Repair signals improving after stress.",
+        "warm_recovery": "Repair signals are strong, but conditions are already warm.",
         "normal": "No dominant extreme signal.",
         "warm": "Above-trend market with warmer conditions.",
         "overheated": "Multiple overheat signals active.",
+        "top_risk_watch": "Top-risk evidence is elevated but below full risk.",
         "top_risk": "Overheat with structural deterioration risk.",
         "unscorable": "Required inputs missing.",
     }
@@ -331,8 +368,10 @@ def _drivers(result: RegimeResult) -> list[str]:
 
 def _risks(result: RegimeResult) -> list[str]:
     risks = []
-    if result.top_risk_score >= 60:
+    if result.top_risk_score >= 75:
         risks.append("top_risk")
+    elif result.top_risk_score >= 70:
+        risks.append("top_risk_watch")
     if result.overheat_score >= 60:
         risks.append("overheat")
     if result.undervaluation_score >= 60:
