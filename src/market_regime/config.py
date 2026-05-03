@@ -66,4 +66,9 @@ class DashboardConfig:
     warm_threshold: float = 60.0
     overheat_threshold: float = 70.0
     top_risk_threshold: float = 75.0
+    top_risk_watch_threshold: float = 70.0
+    recovery_temperature_ceiling: float = 65.0
+    recovery_top_risk_ceiling: float = 55.0
+    recovery_overheat_ceiling: float = 50.0
+    recovery_dist_sma_ceiling: float = 0.08
     low_confidence_threshold: float = 45.0

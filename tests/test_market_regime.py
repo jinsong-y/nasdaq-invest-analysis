@@ -48,8 +48,14 @@ class MarketRegimeConfigTests(unittest.TestCase):
         self.assertEqual(60.0, config.warm_threshold)
         self.assertEqual(70.0, config.overheat_threshold)
         self.assertEqual(75.0, config.top_risk_threshold)
+        self.assertEqual(70.0, config.top_risk_watch_threshold)
+        self.assertEqual(65.0, config.recovery_temperature_ceiling)
+        self.assertEqual(55.0, config.recovery_top_risk_ceiling)
+        self.assertEqual(50.0, config.recovery_overheat_ceiling)
+        self.assertEqual(0.08, config.recovery_dist_sma_ceiling)
         self.assertEqual(45.0, config.low_confidence_threshold)
         self.assertGreater(config.top_risk_threshold, config.warm_threshold)
+        self.assertLess(config.top_risk_watch_threshold, config.top_risk_threshold)
 
 
 import pandas as pd
