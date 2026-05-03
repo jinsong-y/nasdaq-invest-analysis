@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.evaluate_market_regime import (
     FORWARD_HORIZONS,
+    KNOWN_DATES,
     evaluate_daily_regimes,
     merge_previous_regimes,
     write_evaluation_outputs,
@@ -60,3 +61,56 @@ class MarketRegimeEvaluationTests(unittest.TestCase):
             self.assertTrue((out / "index.html").exists())
             payload = json.loads((out / "summary.json").read_text())
             self.assertIn("generated_at", payload)
+
+    def test_forward_12m_mdd_uses_peak_to_trough_path_math(self):
+        dates = pd.bdate_range("2026-01-01", periods=253)
+        prices = [100.0, 150.0, 120.0] + [130.0] * 250
+        result = evaluate_daily_regimes(
+            pd.DataFrame(
+                {
+                    "date": dates,
+                    "market_regime": ["normal"] * len(dates),
+                    "ndx": prices,
+                }
+            )
+        )
+        self.assertAlmostEqual(
+            -0.20,
+            result["daily_with_forward"].loc[0, "fwd_12m_mdd"],
+            places=6,
+        )
+
+    def test_known_dates_use_nearest_available_rows(self):
+        result = evaluate_daily_regimes(self._sample())
+        known = result["known_dates"]
+        self.assertEqual(len(KNOWN_DATES), len(known))
+        self.assertIn("requested_date", known.columns)
+        self.assertIn("matched_date", known.columns)
+        self.assertFalse(known["matched_date"].isna().any())
+
+    def test_empty_schema_valid_frame_raises_clear_value_error(self):
+        empty = pd.DataFrame(columns=["date", "market_regime", "ndx"])
+        with self.assertRaisesRegex(ValueError, "cannot evaluate empty daily regimes frame"):
+            evaluate_daily_regimes(empty)
+
+    def test_hit_rate_ignores_missing_forward_returns(self):
+        dates = pd.bdate_range("2026-01-01", periods=22)
+        result = evaluate_daily_regimes(
+            pd.DataFrame(
+                {
+                    "date": dates,
+                    "market_regime": ["normal"] * len(dates),
+                    "ndx": [100.0 + i for i in range(len(dates))],
+                }
+            )
+        )
+        summary = result["regime_summary"]
+        normal = summary[summary["market_regime"] == "normal"].iloc[0]
+        self.assertEqual(1.0, normal["fwd_1m_win_rate"])
+
+    def test_previous_missing_rows_do_not_count_as_classification_changes(self):
+        current = self._sample()
+        previous = current.loc[[0], ["date", "market_regime"]].copy()
+        merged = merge_previous_regimes(current, previous)
+        result = evaluate_daily_regimes(merged)
+        self.assertEqual(0, len(result["classification_changes"]))

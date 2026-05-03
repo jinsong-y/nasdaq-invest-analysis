@@ -74,12 +74,31 @@ def _forward_max_drawdown(prices: pd.Series, horizon: int) -> pd.Series:
         if window.empty:
             values.append(pd.NA)
             continue
-        values.append((window.min() / start_price) - 1.0)
+        peak = start_price
+        max_drawdown = 0.0
+        for price in window:
+            peak = max(peak, price)
+            max_drawdown = min(max_drawdown, (price / peak) - 1.0)
+        values.append(max_drawdown)
     return pd.Series(values, index=prices.index, dtype="Float64")
+
+
+def _known_date_rows(daily: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    date_distances = daily["date"].astype("int64")
+    for requested in pd.to_datetime(list(KNOWN_DATES)):
+        nearest_idx = (date_distances - requested.value).abs().idxmin()
+        row = daily.loc[nearest_idx].copy()
+        row["requested_date"] = requested
+        row["matched_date"] = row["date"]
+        rows.append(row)
+    return pd.DataFrame(rows).reset_index(drop=True)
 
 
 def evaluate_daily_regimes(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     daily = _prepare_daily(df)
+    if daily.empty:
+        raise ValueError("cannot evaluate empty daily regimes frame")
 
     for horizon, label in FORWARD_HORIZONS.items():
         daily[f"fwd_{label}"] = (daily["ndx"].shift(-horizon) / daily["ndx"]) - 1.0
@@ -93,17 +112,18 @@ def evaluate_daily_regimes(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
             "days": int(len(group)),
         }
         for column in fwd_columns + ["fwd_12m_mdd"]:
-            row[f"{column}_avg"] = group[column].mean()
-            row[f"{column}_median"] = group[column].median()
+            valid = group[column].dropna()
+            row[f"{column}_avg"] = valid.mean() if len(valid) else float("nan")
+            row[f"{column}_median"] = valid.median() if len(valid) else float("nan")
         for column in fwd_columns:
-            row[f"{column}_win_rate"] = (group[column] > 0).mean()
+            valid = group[column].dropna()
+            row[f"{column}_win_rate"] = (valid > 0).mean() if len(valid) else float("nan")
         summary_parts.append(row)
     regime_summary = pd.DataFrame(summary_parts).sort_values(
         ["days", "market_regime"], ascending=[False, True]
     )
 
-    known_index = pd.to_datetime(list(KNOWN_DATES))
-    known_dates = daily[daily["date"].isin(known_index)].copy()
+    known_dates = _known_date_rows(daily)
 
     if "previous_market_regime" in daily.columns:
         compared = daily[daily["previous_market_regime"].notna()].copy()
