@@ -704,11 +704,32 @@ class MarketRegimeReportTests(unittest.TestCase):
                 "Stress Low",
                 "Recovery",
                 "Normal",
+                "Warm Recovery",
                 "Warm",
                 "Overheated",
+                "Top Risk Watch",
                 "Top Risk",
             ]:
                 self.assertIn(label, html)
+            for label in [
+                "暖修复",
+                "顶部风险观察",
+            ]:
+                self.assertIn(label, html)
+
+    def test_write_dashboard_outputs_localizes_active_gauge_label(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["market_regime"] = "warm_recovery"
+            summary["dashboard_action"] = "pause_new_buy"
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('<text x="120" y="132" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
+            self.assertIn('<text x="120" y="132" class="gauge-label" data-lang="zh">暖修复</text>', html)
+            self.assertIn("Current market regime is Warm Recovery / 暖修复.", html)
+            self.assertIn("暂停新买入", html)
 
     def test_write_dashboard_outputs_renders_language_toggle(self):
         with TemporaryDirectory() as tmp:

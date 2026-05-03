@@ -408,19 +408,20 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
     segments = "".join(_gauge_segment(band) for band in REGIME_BANDS)
     legend = "".join(_legend_item(band, regime) for band in REGIME_BANDS)
     active_label = escape(active[1])
+    active_label_zh = escape(ZH_TEXT.get(active[1], active[1]))
     return (
         '<div class="gauge-grid">'
         '<svg class="regime-gauge" viewBox="0 0 240 145" role="img" '
         'aria-labelledby="gauge-title gauge-desc">'
         '<title id="gauge-title">Market regime gauge</title>'
-        f'<desc id="gauge-desc">Current market regime is {active_label}.</desc>'
+        f'<desc id="gauge-desc">Current market regime is {active_label} / {active_label_zh}.</desc>'
         '<path d="M 20 116 A 100 100 0 0 1 220 116" fill="none" stroke="#e3e8ef" '
         'stroke-width="18" stroke-linecap="round"/>'
         f"{segments}"
         f'<line x1="120" y1="116" x2="{needle_x:.2f}" y2="{needle_y:.2f}" '
         'stroke="#18202a" stroke-width="4" stroke-linecap="round"/>'
         '<circle cx="120" cy="116" r="7" fill="#18202a"/>'
-        f'<text x="120" y="132" class="gauge-label">{active_label}</text>'
+        f'{_localized_svg_text(active[1], x=120, y=132, class_name="gauge-label")}'
         '<text x="120" y="142" class="gauge-sub">current regime / 当前状态</text>'
         "</svg>"
         f'<ul class="legend-grid">{legend}</ul>'
@@ -527,6 +528,14 @@ def _format_value(value: Any) -> str:
 def _localized(english: str) -> str:
     chinese = ZH_TEXT.get(english, english)
     return f'<span data-lang="en">{escape(english)}</span><span data-lang="zh">{escape(chinese)}</span>'
+
+
+def _localized_svg_text(english: str, *, x: int, y: int, class_name: str) -> str:
+    chinese = ZH_TEXT.get(english, english)
+    return (
+        f'<text x="{x}" y="{y}" class="{escape(class_name)}" data-lang="en">{escape(english)}</text>'
+        f'<text x="{x}" y="{y}" class="{escape(class_name)}" data-lang="zh">{escape(chinese)}</text>'
+    )
 
 
 def _translated_value(value: Any) -> tuple[str, str]:
