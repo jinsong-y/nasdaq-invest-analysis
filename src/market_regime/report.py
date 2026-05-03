@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 from html import escape
 from pathlib import Path
@@ -113,17 +114,19 @@ th {
 
 
 def write_dashboard_outputs(output_dir: Path, daily: pd.DataFrame, summary: dict[str, Any]) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
     missing_columns = [column for column in OUTPUT_COLUMNS if column not in daily.columns]
     if missing_columns:
         raise ValueError(f"daily is missing output columns: {', '.join(missing_columns)}")
 
-    daily.to_csv(output_dir / "daily_regimes.csv", index=False, columns=OUTPUT_COLUMNS)
-    (output_dir / "latest.json").write_text(
-        json.dumps(summary, indent=2, ensure_ascii=False, allow_nan=False),
-        encoding="utf-8",
-    )
-    (output_dir / "index.html").write_text(_html_page(daily, summary), encoding="utf-8")
+    csv_buffer = io.StringIO()
+    daily.to_csv(csv_buffer, index=False, columns=OUTPUT_COLUMNS)
+    json_text = json.dumps(summary, indent=2, ensure_ascii=False, allow_nan=False)
+    html_text = _html_page(daily, summary)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "daily_regimes.csv").write_text(csv_buffer.getvalue(), encoding="utf-8")
+    (output_dir / "latest.json").write_text(json_text, encoding="utf-8")
+    (output_dir / "index.html").write_text(html_text, encoding="utf-8")
 
 
 def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:

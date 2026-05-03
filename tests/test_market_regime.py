@@ -102,6 +102,12 @@ class MarketRegimeValidationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
                     classify_latest(frame)
 
+    def test_latest_classification_fails_when_denominator_is_zero(self):
+        frame = pd.DataFrame([self._valid_row()], index=pd.to_datetime(["2026-05-01"]))
+        frame.loc[pd.Timestamp("2026-05-01"), "ndxe_ma"] = 0.0
+        with self.assertRaisesRegex(ValueError, "2026-05-01.*ndxe_ma"):
+            classify_latest(frame)
+
 
 class MarketRegimeClassificationTests(unittest.TestCase):
     def _row(
@@ -191,8 +197,8 @@ class MarketRegimeClassificationTests(unittest.TestCase):
                 vix=18.0,
                 vxn_pctile=0.55,
                 vix_pctile=0.50,
-                cnn_fear_greed=35.0,
-                cnn_ma5=42.0,
+                cnn_fear_greed=42.0,
+                cnn_ma5=35.0,
                 ndxe_ndx=0.37,
                 ndxe_ma=0.35,
                 sox_ndx=0.27,
@@ -201,6 +207,33 @@ class MarketRegimeClassificationTests(unittest.TestCase):
         )
         self.assertEqual("recovery", result.market_regime)
         self.assertEqual("normal_dca", result.dashboard_action)
+
+    def test_recovery_requires_current_sentiment_above_moving_average(self):
+        falling_sentiment = self._classify(
+            self._row(
+                dist_sma=-0.02,
+                cnn_fear_greed=10.0,
+                cnn_ma5=45.0,
+                ndxe_ndx=0.35,
+                ndxe_ma=0.35,
+                sox_ndx=0.25,
+                sox_ma=0.25,
+            )
+        )
+        rising_sentiment = self._classify(
+            self._row(
+                dist_sma=-0.02,
+                cnn_fear_greed=45.0,
+                cnn_ma5=10.0,
+                ndxe_ndx=0.35,
+                ndxe_ma=0.35,
+                sox_ndx=0.25,
+                sox_ma=0.25,
+            )
+        )
+
+        self.assertNotEqual("recovery", falling_sentiment.market_regime)
+        self.assertGreater(rising_sentiment.recovery_score, falling_sentiment.recovery_score)
 
     def test_normal_fixture(self):
         result = self._classify(self._row())
@@ -311,6 +344,14 @@ class MarketRegimeSummaryTests(unittest.TestCase):
         self.assertEqual("overheated", out.iloc[1]["market_regime"])
         self.assertEqual(0.0, out.iloc[0]["confidence_score"])
 
+    def test_classify_daily_marks_historical_zero_denominator_as_unscorable(self):
+        frame = self._frame()
+        frame.loc[pd.Timestamp("2026-04-29"), "ndxe_ma"] = 0.0
+        out = classify_daily(frame)
+        self.assertEqual("unscorable", out.iloc[0]["market_regime"])
+        self.assertIn("ndxe_ma", out.iloc[0]["missing_inputs"])
+        self.assertEqual("overheated", out.iloc[1]["market_regime"])
+
     def test_latest_summary_contains_drivers_risks_inputs(self):
         summary = latest_summary(self._frame())
         self.assertEqual("2026-04-30", summary["as_of_date"])
@@ -402,10 +443,13 @@ class MarketRegimeReportTests(unittest.TestCase):
 
     def test_write_dashboard_outputs_fails_when_summary_has_nan(self):
         with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
             summary = self._summary()
             summary["temperature_score"] = float("nan")
             with self.assertRaises(ValueError):
-                write_dashboard_outputs(Path(tmp), self._daily(), summary)
+                write_dashboard_outputs(output_dir, self._daily(), summary)
+            self.assertEqual([], list(output_dir.iterdir()))
+            self.assertFalse((output_dir / "daily_regimes.csv").exists())
 
     def test_write_dashboard_outputs_escapes_summary_html(self):
         with TemporaryDirectory() as tmp:

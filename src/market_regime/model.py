@@ -10,6 +10,7 @@ from .config import DashboardConfig, REQUIRED_DERIVED_COLUMNS, REQUIRED_RAW_COLU
 
 
 REQUIRED_COLUMNS = tuple(sorted(REQUIRED_RAW_COLUMNS | REQUIRED_DERIVED_COLUMNS))
+DENOMINATOR_COLUMNS = {"ndxe_ma", "sox_ma"}
 
 
 @dataclass(frozen=True)
@@ -50,7 +51,7 @@ def missing_inputs_for_row(row: pd.Series) -> list[str]:
     missing = []
     for column in REQUIRED_COLUMNS:
         value = row.get(column)
-        if _is_missing_or_invalid_input(value):
+        if _is_missing_or_invalid_input(value) or _is_invalid_denominator(column, value):
             missing.append(column)
     return missing
 
@@ -63,6 +64,12 @@ def _is_missing_or_invalid_input(value: object) -> bool:
     except (TypeError, ValueError):
         return True
     return not bool(np.isfinite(numeric_value))
+
+
+def _is_invalid_denominator(column: str, value: object) -> bool:
+    if column not in DENOMINATOR_COLUMNS or _is_missing_or_invalid_input(value):
+        return False
+    return float(value) <= 0.0
 
 
 def classify_latest(df: pd.DataFrame, config: DashboardConfig | None = None) -> RegimeResult:
@@ -183,7 +190,7 @@ def _scorable_result(row: pd.Series, date: pd.Timestamp, config: DashboardConfig
     top_risk_score = _clip_score(overheat_score * 0.75 + divergence)
 
     recovery_score = _clip_score(
-        _positive_part(cnn_ma5 - cnn) * 2.0
+        _positive_part(cnn - cnn_ma5) * 2.0
         + _positive_part(breadth_delta) * 450.0
         + _positive_part(semiconductor_delta) * 450.0
         + _clip_score((dist_sma + 0.08) / 0.12 * 20.0)
@@ -229,8 +236,8 @@ def _scorable_result(row: pd.Series, date: pd.Timestamp, config: DashboardConfig
 
 
 def _ratio_delta(value: float, moving_average: float) -> float:
-    if moving_average == 0:
-        return 0.0
+    if not np.isfinite(moving_average) or moving_average <= 0.0:
+        raise ValueError("ratio moving average denominator must be positive and finite")
     return value / moving_average - 1.0
 
 
