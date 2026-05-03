@@ -358,9 +358,9 @@ class MarketRegimeClassificationTests(unittest.TestCase):
                 vix_pctile=0.10,
                 cnn_fear_greed=75.0,
                 cnn_ma5=72.0,
-                ndxe_ndx=0.33,
+                ndxe_ndx=0.3528,
                 ndxe_ma=0.36,
-                sox_ndx=0.23,
+                sox_ndx=0.245,
                 sox_ma=0.25,
             )
         )

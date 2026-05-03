@@ -184,9 +184,9 @@ def _scorable_result(row: pd.Series, date: pd.Timestamp, config: DashboardConfig
 
     divergence = 0.0
     if breadth_delta < 0:
-        divergence += min(10.0, abs(breadth_delta) * 500.0)
+        divergence += min(25.0, abs(breadth_delta) * 500.0)
     if semiconductor_delta < 0:
-        divergence += min(10.0, abs(semiconductor_delta) * 500.0)
+        divergence += min(25.0, abs(semiconductor_delta) * 500.0)
     top_risk_score = _clip_score(overheat_score * 0.75 + divergence)
 
     recovery_score = _clip_score(
