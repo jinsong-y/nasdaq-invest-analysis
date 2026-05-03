@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.market_regime.config import DashboardConfig, OUTPUT_COLUMNS, REQUIRED_DERIVED_COLUMNS, REQUIRED_RAW_COLUMNS
+from src.market_regime.report import REGIME_BANDS, ZH_TEXT
 
 
 class MarketRegimeConfigTests(unittest.TestCase):
@@ -56,6 +57,17 @@ class MarketRegimeConfigTests(unittest.TestCase):
         self.assertEqual(45.0, config.low_confidence_threshold)
         self.assertGreater(config.top_risk_threshold, config.warm_threshold)
         self.assertLess(config.top_risk_watch_threshold, config.top_risk_threshold)
+
+
+class MarketRegimeReportTextTests(unittest.TestCase):
+    def test_report_knows_new_regime_labels(self):
+        labels = {band[0]: band[1] for band in REGIME_BANDS}
+        self.assertEqual("Warm Recovery", labels["warm_recovery"])
+        self.assertEqual("Top Risk Watch", labels["top_risk_watch"])
+        self.assertEqual("暖修复", ZH_TEXT["Warm Recovery"])
+        self.assertEqual("顶部风险观察", ZH_TEXT["Top Risk Watch"])
+        self.assertEqual("暂停新买入", ZH_TEXT["pause_new_buy"])
+        self.assertEqual("轻降节奏", ZH_TEXT["reduce_light"])
 
 
 import pandas as pd
