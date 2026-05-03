@@ -114,8 +114,11 @@ th {
 
 def write_dashboard_outputs(output_dir: Path, daily: pd.DataFrame, summary: dict[str, Any]) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    ordered = [column for column in OUTPUT_COLUMNS if column in daily.columns]
-    daily.to_csv(output_dir / "daily_regimes.csv", index=False, columns=ordered)
+    missing_columns = [column for column in OUTPUT_COLUMNS if column not in daily.columns]
+    if missing_columns:
+        raise ValueError(f"daily is missing output columns: {', '.join(missing_columns)}")
+
+    daily.to_csv(output_dir / "daily_regimes.csv", index=False, columns=OUTPUT_COLUMNS)
     (output_dir / "latest.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False, allow_nan=False),
         encoding="utf-8",

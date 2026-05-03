@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.market_regime.config import DashboardConfig, REQUIRED_DERIVED_COLUMNS, REQUIRED_RAW_COLUMNS
+from src.market_regime.config import DashboardConfig, OUTPUT_COLUMNS, REQUIRED_DERIVED_COLUMNS, REQUIRED_RAW_COLUMNS
 
 
 class MarketRegimeConfigTests(unittest.TestCase):
@@ -334,56 +334,89 @@ from src.market_regime.report import write_dashboard_outputs
 
 
 class MarketRegimeReportTests(unittest.TestCase):
+    def _daily(self):
+        return pd.DataFrame(
+            [
+                {
+                    "date": "2026-04-30",
+                    "market_regime": "normal",
+                    "temperature_score": 50.0,
+                    "undervaluation_score": 0.0,
+                    "overheat_score": 0.0,
+                    "trend_score": 50.0,
+                    "volatility_score": 50.0,
+                    "sentiment_score": 50.0,
+                    "breadth_score": 50.0,
+                    "semiconductor_score": 50.0,
+                    "top_risk_score": 0.0,
+                    "recovery_score": 0.0,
+                    "confidence_score": 60.0,
+                    "dashboard_action": "normal_dca",
+                    "missing_inputs": "",
+                    "ndx": 100.0,
+                    "sma": 100.0,
+                    "dist_sma": 0.0,
+                    "vxn": 20.0,
+                    "vix": 18.0,
+                    "vxn_pctile": 0.5,
+                    "vix_pctile": 0.5,
+                    "cnn_fear_greed": 50.0,
+                    "cnn_ma5": 50.0,
+                    "ndxe_ndx": 0.35,
+                    "ndxe_ma": 0.35,
+                    "sox_ndx": 0.25,
+                    "sox_ma": 0.25,
+                }
+            ]
+        )
+
+    def _summary(self):
+        return {
+            "as_of_date": "2026-04-30",
+            "market_regime": "normal",
+            "temperature_score": 50.0,
+            "confidence_score": 60.0,
+            "dashboard_action": "normal_dca",
+            "summary": "No dominant extreme signal.",
+            "drivers": ["trend", "volatility", "sentiment"],
+            "risks": ["no_major_extreme"],
+            "inputs": {"ndx": 100.0},
+        }
+
     def test_write_dashboard_outputs_creates_csv_json_html(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
-            daily = pd.DataFrame(
-                [
-                    {
-                        "date": "2026-04-30",
-                        "market_regime": "normal",
-                        "temperature_score": 50.0,
-                        "undervaluation_score": 0.0,
-                        "overheat_score": 0.0,
-                        "trend_score": 50.0,
-                        "volatility_score": 50.0,
-                        "sentiment_score": 50.0,
-                        "breadth_score": 50.0,
-                        "semiconductor_score": 50.0,
-                        "top_risk_score": 0.0,
-                        "recovery_score": 0.0,
-                        "confidence_score": 60.0,
-                        "dashboard_action": "normal_dca",
-                        "missing_inputs": "",
-                        "ndx": 100.0,
-                        "sma": 100.0,
-                        "dist_sma": 0.0,
-                        "vxn": 20.0,
-                        "vix": 18.0,
-                        "vxn_pctile": 0.5,
-                        "vix_pctile": 0.5,
-                        "cnn_fear_greed": 50.0,
-                        "cnn_ma5": 50.0,
-                        "ndxe_ndx": 0.35,
-                        "ndxe_ma": 0.35,
-                        "sox_ndx": 0.25,
-                        "sox_ma": 0.25,
-                    }
-                ]
-            )
-            summary = {
-                "as_of_date": "2026-04-30",
-                "market_regime": "normal",
-                "temperature_score": 50.0,
-                "confidence_score": 60.0,
-                "dashboard_action": "normal_dca",
-                "summary": "No dominant extreme signal.",
-                "drivers": ["trend", "volatility", "sentiment"],
-                "risks": ["no_major_extreme"],
-                "inputs": {"ndx": 100.0},
-            }
-            write_dashboard_outputs(output_dir, daily, summary)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
             self.assertTrue((output_dir / "daily_regimes.csv").exists())
             self.assertTrue((output_dir / "latest.json").exists())
             self.assertTrue((output_dir / "index.html").exists())
+            csv_header = (output_dir / "daily_regimes.csv").read_text(encoding="utf-8").splitlines()[0]
+            self.assertEqual(OUTPUT_COLUMNS, csv_header.split(","))
             self.assertIn("normal", (output_dir / "index.html").read_text(encoding="utf-8"))
+
+    def test_write_dashboard_outputs_fails_when_daily_missing_output_column(self):
+        with TemporaryDirectory() as tmp:
+            daily = self._daily().drop(columns=["sox_ma"])
+            with self.assertRaisesRegex(ValueError, "sox_ma"):
+                write_dashboard_outputs(Path(tmp), daily, self._summary())
+
+    def test_write_dashboard_outputs_fails_when_summary_has_nan(self):
+        with TemporaryDirectory() as tmp:
+            summary = self._summary()
+            summary["temperature_score"] = float("nan")
+            with self.assertRaises(ValueError):
+                write_dashboard_outputs(Path(tmp), self._daily(), summary)
+
+    def test_write_dashboard_outputs_escapes_summary_html(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["market_regime"] = "<script>alert(1)</script>"
+            summary["drivers"] = ["<img src=x onerror=alert(1)>"]
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertNotIn("<script>alert(1)</script>", html)
+            self.assertNotIn("<img src=x onerror=alert(1)>", html)
+            self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+            self.assertIn("&lt;img src=x onerror=alert(1)&gt;", html)
