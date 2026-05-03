@@ -49,3 +49,39 @@ class MarketRegimeConfigTests(unittest.TestCase):
         self.assertEqual(75.0, config.top_risk_threshold)
         self.assertEqual(45.0, config.low_confidence_threshold)
         self.assertGreater(config.top_risk_threshold, config.warm_threshold)
+
+
+import pandas as pd
+
+from src.market_regime.model import classify_latest, missing_inputs_for_row
+
+
+class MarketRegimeValidationTests(unittest.TestCase):
+    def _valid_row(self):
+        return {
+            "ndx": 100.0,
+            "sma": 100.0,
+            "dist_sma": 0.0,
+            "vxn": 20.0,
+            "vix": 18.0,
+            "vxn_pctile": 0.50,
+            "vix_pctile": 0.50,
+            "cnn_fear_greed": 50.0,
+            "cnn_ma5": 50.0,
+            "ndxe_ndx": 0.35,
+            "ndxe_ma": 0.35,
+            "sox_ndx": 0.25,
+            "sox_ma": 0.25,
+        }
+
+    def test_missing_inputs_for_row_lists_nan_fields(self):
+        row = pd.Series(self._valid_row())
+        row["vix"] = float("nan")
+        row["vxn"] = None
+        self.assertEqual(["vix", "vxn"], missing_inputs_for_row(row))
+
+    def test_latest_classification_fails_when_required_latest_inputs_missing(self):
+        frame = pd.DataFrame([self._valid_row()], index=pd.to_datetime(["2026-05-01"]))
+        frame.loc[pd.Timestamp("2026-05-01"), "vix"] = float("nan")
+        with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
+            classify_latest(frame)
