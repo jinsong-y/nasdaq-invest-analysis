@@ -1,0 +1,31 @@
+{
+  "as_of_date": "2026-04-30",
+  "market_regime": "recovery",
+  "temperature_score": 63.45669721606423,
+  "confidence_score": 90.22918084826853,
+  "dashboard_action": "normal_dca",
+  "summary": "Repair signals improving after stress.",
+  "drivers": [
+    "semiconductor",
+    "recovery",
+    "trend"
+  ],
+  "risks": [
+    "no_major_extreme"
+  ],
+  "inputs": {
+    "cnn_fear_greed": 66.0,
+    "cnn_ma5": 65.6,
+    "dist_sma": 0.09675794350787248,
+    "ndx": 27452.12,
+    "ndxe_ma": 0.34544297947959185,
+    "ndxe_ndx": 0.3373258604,
+    "sma": 25030.244971098266,
+    "sox_ma": 0.3361415399693877,
+    "sox_ndx": 0.3826189016,
+    "vix": 16.89,
+    "vix_pctile": 0.40048348106365833,
+    "vxn": 21.79,
+    "vxn_pctile": 0.4896949711459192
+  }
+}
