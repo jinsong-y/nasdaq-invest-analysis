@@ -50,9 +50,19 @@ def missing_inputs_for_row(row: pd.Series) -> list[str]:
     missing = []
     for column in REQUIRED_COLUMNS:
         value = row.get(column)
-        if pd.isna(value):
+        if _is_missing_or_invalid_input(value):
             missing.append(column)
     return missing
+
+
+def _is_missing_or_invalid_input(value: object) -> bool:
+    if pd.isna(value):
+        return True
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return True
+    return bool(np.isnan(numeric_value))
 
 
 def classify_latest(df: pd.DataFrame, config: DashboardConfig | None = None) -> RegimeResult:

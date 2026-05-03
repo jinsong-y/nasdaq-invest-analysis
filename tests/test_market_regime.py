@@ -85,3 +85,10 @@ class MarketRegimeValidationTests(unittest.TestCase):
         frame.loc[pd.Timestamp("2026-05-01"), "vix"] = float("nan")
         with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
             classify_latest(frame)
+
+    def test_latest_classification_fails_when_required_latest_inputs_invalid(self):
+        frame = pd.DataFrame([self._valid_row()], index=pd.to_datetime(["2026-05-01"]))
+        frame["vix"] = frame["vix"].astype(object)
+        frame.loc[pd.Timestamp("2026-05-01"), "vix"] = "bad"
+        with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
+            classify_latest(frame)
