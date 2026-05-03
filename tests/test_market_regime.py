@@ -208,14 +208,15 @@ class MarketRegimeClassificationTests(unittest.TestCase):
                 vix_pctile=0.28,
                 cnn_fear_greed=66.0,
                 cnn_ma5=64.0,
-                ndxe_ndx=0.36,
+                ndxe_ndx=0.35,
                 ndxe_ma=0.35,
-                sox_ndx=0.26,
+                sox_ndx=0.25,
                 sox_ma=0.25,
             )
         )
         self.assertEqual("warm", result.market_regime)
         self.assertEqual("reduce", result.dashboard_action)
+        self.assertLess(result.recovery_score, 55.0)
 
     def test_overheated_fixture(self):
         result = self._classify(

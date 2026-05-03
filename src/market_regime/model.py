@@ -246,10 +246,10 @@ def _market_regime(
         return "panic_low"
     if undervaluation_score >= config.stress_low_threshold:
         return "stress_low"
-    if temperature_score >= config.warm_threshold:
-        return "warm"
     if recovery_score >= config.recovery_threshold:
         return "recovery"
+    if temperature_score >= config.warm_threshold:
+        return "warm"
     return "normal"
 
 
