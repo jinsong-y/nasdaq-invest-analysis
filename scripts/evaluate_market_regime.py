@@ -43,12 +43,17 @@ def _prepare_daily(df: pd.DataFrame) -> pd.DataFrame:
     _validate_columns(df, REQUIRED_COLUMNS, "daily regime data")
     daily = df.copy()
     daily["date"] = pd.to_datetime(daily["date"])
+    raw_ndx = daily["ndx"]
     ndx = pd.to_numeric(daily["ndx"], errors="coerce")
-    invalid_ndx = ndx.isna() | ~ndx.map(math.isfinite)
+    source_missing = raw_ndx.isna()
+    if raw_ndx.dtype == object:
+        source_missing = source_missing | raw_ndx.astype(str).str.strip().eq("")
+    invalid_ndx = (ndx.isna() & ~source_missing) | (ndx.notna() & ~ndx.map(math.isfinite))
     if invalid_ndx.any():
         bad_dates = daily.loc[invalid_ndx, "date"].astype(str).tolist()
         raise ValueError(f"invalid ndx values for dates: {bad_dates}")
     daily["ndx"] = ndx
+    daily = daily.loc[~source_missing].copy()
     daily = daily.sort_values("date").reset_index(drop=True)
     return daily
 

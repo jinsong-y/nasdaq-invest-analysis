@@ -159,3 +159,19 @@ class MarketRegimeEvaluationTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "invalid ndx"):
             evaluate_daily_regimes(df)
+
+    def test_missing_ndx_placeholder_rows_are_dropped(self):
+        dates = pd.bdate_range("2026-01-01", periods=3)
+        result = evaluate_daily_regimes(
+            pd.DataFrame(
+                {
+                    "date": dates,
+                    "market_regime": ["normal", "unscorable", "normal"],
+                    "ndx": [100.0, float("nan"), 102.0],
+                    "missing_inputs": ["", "ndx", ""],
+                }
+            )
+        )
+        daily = result["daily_with_forward"]
+        self.assertEqual(2, len(daily))
+        self.assertNotIn(dates[1], set(daily["date"]))
