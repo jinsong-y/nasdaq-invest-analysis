@@ -1,10 +1,10 @@
 {
   "as_of_date": "2026-04-30",
-  "market_regime": "recovery",
+  "market_regime": "warm_recovery",
   "temperature_score": 63.45669721606423,
   "confidence_score": 90.22918084826853,
   "dashboard_action": "normal_dca",
-  "summary": "Repair signals improving after stress.",
+  "summary": "Repair signals are strong, but conditions are already warm.",
   "drivers": [
     "semiconductor",
     "recovery",
