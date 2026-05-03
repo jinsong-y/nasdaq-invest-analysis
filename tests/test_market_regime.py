@@ -486,6 +486,21 @@ class MarketRegimeReportTests(unittest.TestCase):
             ]:
                 self.assertIn(label, html)
 
+    def test_write_dashboard_outputs_renders_language_toggle(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="language-toggle"', html)
+            self.assertIn('data-language="en"', html)
+            self.assertIn('data-language="zh"', html)
+            self.assertIn('data-lang="en"', html)
+            self.assertIn('data-lang="zh"', html)
+            self.assertIn("Market Regime Dashboard", html)
+            self.assertIn("市场状态仪表盘", html)
+            self.assertIn("市场状态指针", html)
+
 
 class MarketRegimeWorkflowTests(unittest.TestCase):
     def test_run_workflow_writes_outputs_for_complete_target_date(self):

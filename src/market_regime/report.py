@@ -23,6 +23,59 @@ REGIME_BANDS = [
 ]
 
 
+ZH_TEXT = {
+    "Market Regime Dashboard": "市场状态仪表盘",
+    "Market State Gauge": "市场状态指针",
+    "Summary": "摘要",
+    "Drivers": "主要驱动",
+    "Risks": "风险",
+    "Latest Inputs": "最新输入",
+    "Recent Daily Regimes": "近期每日状态",
+    "As of": "日期",
+    "Regime": "状态",
+    "Action": "动作",
+    "Temperature": "温度",
+    "Confidence": "置信度",
+    "Panic Low": "恐慌低位",
+    "Stress Low": "压力偏低",
+    "Recovery": "修复期",
+    "Normal": "正常",
+    "Warm": "偏热",
+    "Overheated": "过热",
+    "Top Risk": "顶部风险",
+    "Severe stress; prices and sentiment are deeply depressed.": "严重压力；价格和情绪明显低迷。",
+    "Below-trend market with elevated stress.": "低于趋势且压力升高。",
+    "Repair signals improving after stress.": "压力后修复信号改善。",
+    "Balanced market; no major extreme dominates.": "市场均衡；没有主要极端信号。",
+    "Above-trend market with warmer conditions.": "高于趋势，市场温度偏暖。",
+    "Multiple overheat signals are active.": "多个过热信号同时出现。",
+    "Overheat plus structural deterioration risk.": "过热叠加结构走弱风险。",
+    "Severe stress with low-market evidence.": "严重压力，低位证据明显。",
+    "Market stress and below-trend evidence.": "市场承压，且存在低于趋势的证据。",
+    "No dominant extreme signal.": "没有主导性的极端信号。",
+    "Required inputs missing.": "关键输入缺失。",
+    "Current.": "当前。",
+    "normal_dca": "正常定投",
+    "add_strong": "强加仓",
+    "add_light": "轻加仓",
+    "reduce": "降低节奏",
+    "pause": "暂停",
+    "unavailable": "不可用",
+    "undervaluation": "偏低",
+    "overheat": "过热",
+    "top_risk": "顶部风险",
+    "recovery": "修复",
+    "trend": "趋势",
+    "volatility": "波动",
+    "sentiment": "情绪",
+    "breadth": "广度",
+    "semiconductor": "半导体",
+    "market_stress": "市场压力",
+    "low_confidence": "低置信度",
+    "no_major_extreme": "无主要极端",
+}
+
+
 CSS = """
 :root {
   color-scheme: light;
@@ -48,6 +101,51 @@ h2 {
 
 h1 {
   font-size: 28px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.language-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #d8dee7;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.language-toggle button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #3b4754;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+body.lang-en .language-toggle [data-language="en"],
+body.lang-zh .language-toggle [data-language="zh"] {
+  background: #18202a;
+  color: #ffffff;
+}
+
+[data-lang="zh"] {
+  display: none;
+}
+
+body.lang-zh [data-lang="en"] {
+  display: none;
+}
+
+body.lang-zh [data-lang="zh"] {
+  display: inline;
 }
 
 h2 {
@@ -185,6 +283,11 @@ th {
     padding: 18px;
   }
 
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .gauge-grid {
     grid-template-columns: 1fr;
   }
@@ -193,6 +296,30 @@ th {
     grid-template-columns: 14px minmax(82px, 0.32fr) 1fr;
   }
 }
+"""
+
+
+LANGUAGE_SCRIPT = """
+<script>
+function setLanguage(language) {
+  const isChinese = language === "zh";
+  document.body.classList.toggle("lang-zh", isChinese);
+  document.body.classList.toggle("lang-en", !isChinese);
+  document.documentElement.lang = isChinese ? "zh-CN" : "en";
+  for (const button of document.querySelectorAll("[data-language]")) {
+    button.setAttribute("aria-pressed", button.dataset.language === language ? "true" : "false");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  setLanguage("en");
+  for (const button of document.querySelectorAll("[data-language]")) {
+    button.addEventListener("click", function () {
+      setLanguage(button.dataset.language);
+    });
+  }
+});
+</script>
 """
 
 
@@ -224,17 +351,21 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             "<title>Market Regime Dashboard</title>",
             f"<style>{CSS}</style>",
             "</head>",
-            "<body>",
+            '<body class="lang-en">',
             "<main>",
-            "<h1>Market Regime Dashboard</h1>",
+            '<div class="topbar">',
+            f"<h1>{_localized('Market Regime Dashboard')}</h1>",
+            _language_toggle(),
+            "</div>",
             _summary_grid(summary),
             _section("Market State Gauge", _regime_gauge(summary)),
-            _section("Summary", _paragraph(summary.get("summary", ""))),
+            _section("Summary", _summary_paragraph(summary)),
             _section("Drivers", _list(summary.get("drivers", []))),
             _section("Risks", _list(summary.get("risks", []))),
             _section("Latest Inputs", _key_value_list(summary.get("inputs", {}))),
             _section("Recent Daily Regimes", _table(rows)),
             "</main>",
+            LANGUAGE_SCRIPT,
             "</body>",
             "</html>",
         ]
@@ -244,15 +375,15 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
 def _summary_grid(summary: dict[str, Any]) -> str:
     metrics = [
         ("As of", summary.get("as_of_date", "")),
-        ("Regime", summary.get("market_regime", "")),
-        ("Action", summary.get("dashboard_action", "")),
+        ("Regime", _translated_value(summary.get("market_regime", ""))),
+        ("Action", _translated_value(summary.get("dashboard_action", ""))),
         ("Temperature", summary.get("temperature_score", "")),
         ("Confidence", summary.get("confidence_score", "")),
     ]
     cards = [
         '<div class="metric">'
-        f'<div class="label">{escape(label)}</div>'
-        f'<div class="value">{escape(_format_value(value))}</div>'
+        f'<div class="label">{_localized(label)}</div>'
+        f'<div class="value">{_format_display_value(value)}</div>'
         "</div>"
         for label, value in metrics
     ]
@@ -281,7 +412,7 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
         'stroke="#18202a" stroke-width="4" stroke-linecap="round"/>'
         '<circle cx="120" cy="116" r="7" fill="#18202a"/>'
         f'<text x="120" y="132" class="gauge-label">{active_label}</text>'
-        '<text x="120" y="142" class="gauge-sub">current regime</text>'
+        '<text x="120" y="142" class="gauge-sub">current regime / 当前状态</text>'
         "</svg>"
         f'<ul class="legend-grid">{legend}</ul>'
         "</div>"
@@ -311,12 +442,12 @@ def _gauge_segment(band: tuple[str, str, int, int, str, str]) -> str:
 
 def _legend_item(band: tuple[str, str, int, int, str, str], current_regime: str) -> str:
     key, label, start, end, color, description = band
-    current = " Current." if key == current_regime else ""
+    current = _localized("Current.") if key == current_regime else ""
     return (
         '<li class="legend-item">'
         f'<span class="swatch" style="background:{color}"></span>'
-        f'<strong>{escape(label)}</strong>'
-        f'<span>{start}-{end}: {escape(description)}{current}</span>'
+        f"<strong>{_localized(label)}</strong>"
+        f"<span>{start}-{end}: {_localized(description)}{current}</span>"
         "</li>"
     )
 
@@ -334,17 +465,21 @@ def _polar(cx: float, cy: float, radius: float, angle: float) -> tuple[float, fl
 
 
 def _section(title: str, body: str) -> str:
-    return f"<h2>{escape(title)}</h2><section class=\"panel\">{body}</section>"
+    return f"<h2>{_localized(title)}</h2><section class=\"panel\">{body}</section>"
 
 
 def _paragraph(value: Any) -> str:
     return f"<p>{escape(_format_value(value))}</p>"
 
 
+def _summary_paragraph(summary: dict[str, Any]) -> str:
+    return f"<p>{_localized(_format_value(summary.get('summary', '')))}</p>"
+
+
 def _list(values: Any) -> str:
     if not isinstance(values, list) or not values:
         return "<p>None</p>"
-    items = "".join(f"<li>{escape(_format_value(value))}</li>" for value in values)
+    items = "".join(f"<li>{_localized(_format_value(value))}</li>" for value in values)
     return f"<ul>{items}</ul>"
 
 
@@ -378,3 +513,29 @@ def _format_value(value: Any) -> str:
     if isinstance(value, float):
         return f"{value:.2f}"
     return str(value)
+
+
+def _localized(english: str) -> str:
+    chinese = ZH_TEXT.get(english, english)
+    return f'<span data-lang="en">{escape(english)}</span><span data-lang="zh">{escape(chinese)}</span>'
+
+
+def _translated_value(value: Any) -> tuple[str, str]:
+    text = _format_value(value)
+    return text, ZH_TEXT.get(text, text)
+
+
+def _format_display_value(value: Any) -> str:
+    if isinstance(value, tuple):
+        english, chinese = value
+        return f'<span data-lang="en">{escape(english)}</span><span data-lang="zh">{escape(chinese)}</span>'
+    return escape(_format_value(value))
+
+
+def _language_toggle() -> str:
+    return (
+        '<div class="language-toggle" aria-label="Language switch">'
+        '<button type="button" data-language="en" aria-pressed="true">English</button>'
+        '<button type="button" data-language="zh" aria-pressed="false">中文</button>'
+        "</div>"
+    )
