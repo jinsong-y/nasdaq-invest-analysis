@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
@@ -42,7 +43,12 @@ def _prepare_daily(df: pd.DataFrame) -> pd.DataFrame:
     _validate_columns(df, REQUIRED_COLUMNS, "daily regime data")
     daily = df.copy()
     daily["date"] = pd.to_datetime(daily["date"])
-    daily["ndx"] = pd.to_numeric(daily["ndx"], errors="coerce")
+    ndx = pd.to_numeric(daily["ndx"], errors="coerce")
+    invalid_ndx = ndx.isna() | ~ndx.map(math.isfinite)
+    if invalid_ndx.any():
+        bad_dates = daily.loc[invalid_ndx, "date"].astype(str).tolist()
+        raise ValueError(f"invalid ndx values for dates: {bad_dates}")
+    daily["ndx"] = ndx
     daily = daily.sort_values("date").reset_index(drop=True)
     return daily
 
@@ -106,7 +112,8 @@ def evaluate_daily_regimes(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
 
     fwd_columns = [f"fwd_{label}" for label in FORWARD_HORIZONS.values()]
     summary_parts = []
-    for regime, group in daily.groupby("market_regime", dropna=False):
+    summary_daily = daily[daily["market_regime"] != "unscorable"]
+    for regime, group in summary_daily.groupby("market_regime", dropna=False):
         row: dict[str, Any] = {
             "market_regime": regime,
             "days": int(len(group)),
@@ -119,9 +126,16 @@ def evaluate_daily_regimes(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
             valid = group[column].dropna()
             row[f"{column}_win_rate"] = (valid > 0).mean() if len(valid) else float("nan")
         summary_parts.append(row)
-    regime_summary = pd.DataFrame(summary_parts).sort_values(
-        ["days", "market_regime"], ascending=[False, True]
-    )
+    regime_summary_columns = ["market_regime", "days"]
+    for column in fwd_columns + ["fwd_12m_mdd"]:
+        regime_summary_columns.extend([f"{column}_avg", f"{column}_median"])
+    for column in fwd_columns:
+        regime_summary_columns.append(f"{column}_win_rate")
+    regime_summary = pd.DataFrame(summary_parts, columns=regime_summary_columns)
+    if not regime_summary.empty:
+        regime_summary = regime_summary.sort_values(
+            ["days", "market_regime"], ascending=[False, True]
+        )
 
     known_dates = _known_date_rows(daily)
 

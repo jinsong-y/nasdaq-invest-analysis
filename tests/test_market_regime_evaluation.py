@@ -81,12 +81,23 @@ class MarketRegimeEvaluationTests(unittest.TestCase):
         )
 
     def test_known_dates_use_nearest_available_rows(self):
-        result = evaluate_daily_regimes(self._sample())
+        dates = pd.to_datetime(["2011-08-05", "2011-08-09"])
+        result = evaluate_daily_regimes(
+            pd.DataFrame(
+                {
+                    "date": dates,
+                    "market_regime": ["normal", "normal"],
+                    "ndx": [100.0, 101.0],
+                }
+            )
+        )
         known = result["known_dates"]
         self.assertEqual(len(KNOWN_DATES), len(known))
         self.assertIn("requested_date", known.columns)
         self.assertIn("matched_date", known.columns)
         self.assertFalse(known["matched_date"].isna().any())
+        first = known[known["requested_date"] == pd.Timestamp("2011-08-08")].iloc[0]
+        self.assertEqual(pd.Timestamp("2011-08-09"), first["matched_date"])
 
     def test_empty_schema_valid_frame_raises_clear_value_error(self):
         empty = pd.DataFrame(columns=["date", "market_regime", "ndx"])
@@ -114,3 +125,37 @@ class MarketRegimeEvaluationTests(unittest.TestCase):
         merged = merge_previous_regimes(current, previous)
         result = evaluate_daily_regimes(merged)
         self.assertEqual(0, len(result["classification_changes"]))
+
+    def test_regime_summary_excludes_unscorable_rows(self):
+        df = pd.DataFrame(
+            {
+                "date": pd.bdate_range("2026-01-01", periods=3),
+                "market_regime": ["unscorable", "normal", "unscorable"],
+                "ndx": [100.0, 101.0, 102.0],
+            }
+        )
+        result = evaluate_daily_regimes(df)
+        self.assertNotIn("unscorable", set(result["regime_summary"]["market_regime"]))
+        self.assertIn("normal", set(result["regime_summary"]["market_regime"]))
+
+    def test_invalid_ndx_raises_value_error(self):
+        df = pd.DataFrame(
+            {
+                "date": pd.bdate_range("2026-01-01", periods=3),
+                "market_regime": ["normal", "normal", "normal"],
+                "ndx": [100.0, "bad", 102.0],
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "invalid ndx"):
+            evaluate_daily_regimes(df)
+
+    def test_non_finite_ndx_raises_value_error(self):
+        df = pd.DataFrame(
+            {
+                "date": pd.bdate_range("2026-01-01", periods=3),
+                "market_regime": ["normal", "normal", "normal"],
+                "ndx": [100.0, float("inf"), 102.0],
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "invalid ndx"):
+            evaluate_daily_regimes(df)
