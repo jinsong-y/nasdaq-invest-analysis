@@ -465,6 +465,27 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
             self.assertIn("&lt;img src=x onerror=alert(1)&gt;", html)
 
+    def test_write_dashboard_outputs_renders_regime_gauge_and_legend(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["market_regime"] = "recovery"
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="regime-gauge"', html)
+            self.assertIn("Market State Gauge", html)
+            for label in [
+                "Panic Low",
+                "Stress Low",
+                "Recovery",
+                "Normal",
+                "Warm",
+                "Overheated",
+                "Top Risk",
+            ]:
+                self.assertIn(label, html)
+
 
 class MarketRegimeWorkflowTests(unittest.TestCase):
     def test_run_workflow_writes_outputs_for_complete_target_date(self):
