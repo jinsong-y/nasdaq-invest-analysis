@@ -120,22 +120,150 @@ def _float_or_nan(value: object) -> float:
 
 
 def _scorable_result(row: pd.Series, date: pd.Timestamp, config: DashboardConfig) -> RegimeResult:
+    dist_sma = _float_or_nan(row["dist_sma"])
+    vxn_pctile = _float_or_nan(row["vxn_pctile"])
+    vix_pctile = _float_or_nan(row["vix_pctile"])
+    cnn = _float_or_nan(row["cnn_fear_greed"])
+    cnn_ma5 = _float_or_nan(row["cnn_ma5"])
+    ndxe_ndx = _float_or_nan(row["ndxe_ndx"])
+    ndxe_ma = _float_or_nan(row["ndxe_ma"])
+    sox_ndx = _float_or_nan(row["sox_ndx"])
+    sox_ma = _float_or_nan(row["sox_ma"])
+
+    vol_high = max(vxn_pctile, vix_pctile)
+    vol_low = 1.0 - min(vxn_pctile, vix_pctile)
+    breadth_delta = _ratio_delta(ndxe_ndx, ndxe_ma)
+    semiconductor_delta = _ratio_delta(sox_ndx, sox_ma)
+
+    trend_score = _clip_score(50.0 + dist_sma * 250.0)
+    volatility_score = _clip_score(max(vol_high, vol_low) * 100.0)
+    sentiment_score = _clip_score(cnn)
+    breadth_score = _clip_score(50.0 + breadth_delta * 500.0)
+    semiconductor_score = _clip_score(50.0 + semiconductor_delta * 500.0)
+
+    low_price = _clip_score((-dist_sma) / 0.20 * 55.0)
+    high_vol = _clip_score((vol_high - 0.55) / 0.40 * 30.0)
+    fear = _clip_score((35.0 - cnn) / 35.0 * 35.0)
+    undervaluation_score = _clip_score(low_price + high_vol + fear)
+
+    high_price = _clip_score(dist_sma / 0.20 * 45.0)
+    low_vol = _clip_score((0.35 - min(vxn_pctile, vix_pctile)) / 0.35 * 25.0)
+    greed = _clip_score((cnn - 60.0) / 35.0 * 30.0)
+    overheat_score = _clip_score(high_price + low_vol + greed)
+
+    divergence = 0.0
+    if breadth_delta < 0:
+        divergence += min(25.0, abs(breadth_delta) * 500.0)
+    if semiconductor_delta < 0:
+        divergence += min(25.0, abs(semiconductor_delta) * 500.0)
+    top_risk_score = _clip_score(overheat_score * 0.75 + divergence)
+
+    recovery_score = _clip_score(
+        _positive_part(cnn_ma5 - cnn) * 2.0
+        + _positive_part(breadth_delta) * 450.0
+        + _positive_part(semiconductor_delta) * 450.0
+        + _clip_score((dist_sma + 0.08) / 0.12 * 20.0)
+    )
+
+    temperature_score = _clip_score(50.0 + overheat_score * 0.50 - undervaluation_score * 0.45)
+    confidence_score = _confidence_score(
+        undervaluation_score=undervaluation_score,
+        overheat_score=overheat_score,
+        top_risk_score=top_risk_score,
+        recovery_score=recovery_score,
+    )
+    market_regime = _market_regime(
+        config,
+        undervaluation_score=undervaluation_score,
+        overheat_score=overheat_score,
+        top_risk_score=top_risk_score,
+        recovery_score=recovery_score,
+        temperature_score=temperature_score,
+        vol_high=vol_high,
+        cnn=cnn,
+    )
+    action = _dashboard_action(market_regime, confidence_score, config)
     inputs = {column: _float_or_nan(row.get(column)) for column in REQUIRED_COLUMNS}
     return RegimeResult(
         date=date,
-        market_regime="normal",
-        temperature_score=50.0,
-        undervaluation_score=0.0,
-        overheat_score=0.0,
-        trend_score=50.0,
-        volatility_score=50.0,
-        sentiment_score=50.0,
-        breadth_score=50.0,
-        semiconductor_score=50.0,
-        top_risk_score=0.0,
-        recovery_score=0.0,
-        confidence_score=60.0,
-        dashboard_action="normal_dca",
+        market_regime=market_regime,
+        temperature_score=temperature_score,
+        undervaluation_score=undervaluation_score,
+        overheat_score=overheat_score,
+        trend_score=trend_score,
+        volatility_score=volatility_score,
+        sentiment_score=sentiment_score,
+        breadth_score=breadth_score,
+        semiconductor_score=semiconductor_score,
+        top_risk_score=top_risk_score,
+        recovery_score=recovery_score,
+        confidence_score=confidence_score,
+        dashboard_action=action,
         missing_inputs=[],
         inputs=inputs,
     )
+
+
+def _ratio_delta(value: float, moving_average: float) -> float:
+    if moving_average == 0:
+        return 0.0
+    return value / moving_average - 1.0
+
+
+def _positive_part(value: float) -> float:
+    return max(0.0, value)
+
+
+def _confidence_score(
+    *,
+    undervaluation_score: float,
+    overheat_score: float,
+    top_risk_score: float,
+    recovery_score: float,
+) -> float:
+    strongest = max(undervaluation_score, overheat_score, top_risk_score, recovery_score)
+    second = sorted([undervaluation_score, overheat_score, top_risk_score, recovery_score])[-2]
+    separation = max(0.0, strongest - second)
+    return _clip_score(55.0 + strongest * 0.25 + separation * 0.20)
+
+
+def _market_regime(
+    config: DashboardConfig,
+    *,
+    undervaluation_score: float,
+    overheat_score: float,
+    top_risk_score: float,
+    recovery_score: float,
+    temperature_score: float,
+    vol_high: float,
+    cnn: float,
+) -> str:
+    if top_risk_score >= config.top_risk_threshold:
+        return "top_risk"
+    if overheat_score >= config.overheat_threshold:
+        return "overheated"
+    if undervaluation_score >= config.panic_low_threshold and vol_high >= 0.90 and cnn <= 15.0:
+        return "panic_low"
+    if undervaluation_score >= config.stress_low_threshold:
+        return "stress_low"
+    if temperature_score >= config.warm_threshold:
+        return "warm"
+    if recovery_score >= config.recovery_threshold:
+        return "recovery"
+    return "normal"
+
+
+def _dashboard_action(market_regime: str, confidence_score: float, config: DashboardConfig) -> str:
+    if confidence_score < config.low_confidence_threshold:
+        return "unavailable"
+    if market_regime == "panic_low":
+        return "add_strong"
+    if market_regime == "stress_low":
+        return "add_light"
+    if market_regime in {"recovery", "normal"}:
+        return "normal_dca"
+    if market_regime in {"warm", "overheated"}:
+        return "reduce"
+    if market_regime == "top_risk":
+        return "pause"
+    return "unavailable"

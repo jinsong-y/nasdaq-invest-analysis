@@ -92,3 +92,166 @@ class MarketRegimeValidationTests(unittest.TestCase):
         frame.loc[pd.Timestamp("2026-05-01"), "vix"] = "bad"
         with self.assertRaisesRegex(ValueError, "2026-05-01.*vix"):
             classify_latest(frame)
+
+
+class MarketRegimeClassificationTests(unittest.TestCase):
+    def _row(
+        self,
+        *,
+        ndx=100.0,
+        sma=100.0,
+        dist_sma=0.0,
+        vxn=20.0,
+        vix=18.0,
+        vxn_pctile=0.50,
+        vix_pctile=0.50,
+        cnn_fear_greed=50.0,
+        cnn_ma5=50.0,
+        ndxe_ndx=0.35,
+        ndxe_ma=0.35,
+        sox_ndx=0.25,
+        sox_ma=0.25,
+    ):
+        return pd.Series(
+            {
+                "ndx": ndx,
+                "sma": sma,
+                "dist_sma": dist_sma,
+                "vxn": vxn,
+                "vix": vix,
+                "vxn_pctile": vxn_pctile,
+                "vix_pctile": vix_pctile,
+                "cnn_fear_greed": cnn_fear_greed,
+                "cnn_ma5": cnn_ma5,
+                "ndxe_ndx": ndxe_ndx,
+                "ndxe_ma": ndxe_ma,
+                "sox_ndx": sox_ndx,
+                "sox_ma": sox_ma,
+            }
+        )
+
+    def _classify(self, row):
+        from src.market_regime.model import classify_row
+
+        return classify_row(row, date=pd.Timestamp("2026-04-30"), strict=True)
+
+    def test_panic_low_fixture(self):
+        result = self._classify(
+            self._row(
+                ndx=78.0,
+                sma=100.0,
+                dist_sma=-0.22,
+                vxn=55.0,
+                vix=48.0,
+                vxn_pctile=0.98,
+                vix_pctile=0.97,
+                cnn_fear_greed=8.0,
+                cnn_ma5=10.0,
+                ndxe_ndx=0.30,
+                ndxe_ma=0.36,
+                sox_ndx=0.18,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("panic_low", result.market_regime)
+        self.assertEqual("add_strong", result.dashboard_action)
+        self.assertGreaterEqual(result.undervaluation_score, 75.0)
+
+    def test_stress_low_fixture(self):
+        result = self._classify(
+            self._row(
+                ndx=90.0,
+                sma=100.0,
+                dist_sma=-0.10,
+                vxn_pctile=0.82,
+                vix_pctile=0.80,
+                cnn_fear_greed=22.0,
+                cnn_ma5=24.0,
+            )
+        )
+        self.assertEqual("stress_low", result.market_regime)
+        self.assertEqual("add_light", result.dashboard_action)
+
+    def test_recovery_fixture(self):
+        result = self._classify(
+            self._row(
+                ndx=99.0,
+                sma=100.0,
+                dist_sma=-0.01,
+                vxn=21.0,
+                vix=18.0,
+                vxn_pctile=0.55,
+                vix_pctile=0.50,
+                cnn_fear_greed=35.0,
+                cnn_ma5=42.0,
+                ndxe_ndx=0.37,
+                ndxe_ma=0.35,
+                sox_ndx=0.27,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("recovery", result.market_regime)
+        self.assertEqual("normal_dca", result.dashboard_action)
+
+    def test_normal_fixture(self):
+        result = self._classify(self._row())
+        self.assertEqual("normal", result.market_regime)
+        self.assertEqual("normal_dca", result.dashboard_action)
+
+    def test_warm_fixture(self):
+        result = self._classify(
+            self._row(
+                ndx=109.0,
+                sma=100.0,
+                dist_sma=0.09,
+                vxn_pctile=0.30,
+                vix_pctile=0.28,
+                cnn_fear_greed=66.0,
+                cnn_ma5=64.0,
+                ndxe_ndx=0.36,
+                ndxe_ma=0.35,
+                sox_ndx=0.26,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("warm", result.market_regime)
+        self.assertEqual("reduce", result.dashboard_action)
+
+    def test_overheated_fixture(self):
+        result = self._classify(
+            self._row(
+                ndx=118.0,
+                sma=100.0,
+                dist_sma=0.18,
+                vxn_pctile=0.12,
+                vix_pctile=0.10,
+                cnn_fear_greed=82.0,
+                cnn_ma5=80.0,
+                ndxe_ndx=0.36,
+                ndxe_ma=0.35,
+                sox_ndx=0.26,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("overheated", result.market_regime)
+        self.assertEqual("reduce", result.dashboard_action)
+
+    def test_top_risk_fixture(self):
+        result = self._classify(
+            self._row(
+                ndx=124.0,
+                sma=100.0,
+                dist_sma=0.24,
+                vxn_pctile=0.08,
+                vix_pctile=0.06,
+                cnn_fear_greed=88.0,
+                cnn_ma5=84.0,
+                ndxe_ndx=0.32,
+                ndxe_ma=0.36,
+                sox_ndx=0.21,
+                sox_ma=0.25,
+            )
+        )
+        self.assertEqual("top_risk", result.market_regime)
+        self.assertEqual("pause", result.dashboard_action)
+        self.assertGreaterEqual(result.top_risk_score, 75.0)
