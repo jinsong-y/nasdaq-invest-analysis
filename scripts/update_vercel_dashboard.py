@@ -24,8 +24,8 @@ REQUIRED_PUBLISHABLE_COLUMNS = (
     "sox_ndx",
 )
 BILINGUAL_MARKERS = (
-    "Market Regime Dashboard",
-    "市场状态仪表盘",
+    "Nasdaq 100 Market Regime Dashboard",
+    "纳指100市场状态仪表盘",
     'data-language="en"',
     'data-language="zh"',
 )

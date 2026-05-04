@@ -275,8 +275,8 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
 
     def _write_generated_dashboard(self, root: Path, market_date: str) -> None:
         html = (
-            "<!doctype html><title>Market Regime Dashboard</title>"
-            "<body>市场状态仪表盘"
+            "<!doctype html><title>Nasdaq 100 Market Regime Dashboard</title>"
+            "<body>纳指100市场状态仪表盘"
             '<button data-language="en">English</button>'
             '<button data-language="zh">中文</button>'
             "</body>"
@@ -435,8 +435,8 @@ class UpdateDashboardFileTests(unittest.TestCase):
     def _write_report_tree(self, root: Path) -> None:
         report_dir = root / "reports" / "market_regime"
         html = (
-            "<!doctype html><title>Market Regime Dashboard</title>"
-            "<body>市场状态仪表盘"
+            "<!doctype html><title>Nasdaq 100 Market Regime Dashboard</title>"
+            "<body>纳指100市场状态仪表盘"
             '<button data-language="en">English</button>'
             '<button data-language="zh">中文</button>'
             "</body>"
@@ -464,7 +464,7 @@ class UpdateDashboardFileTests(unittest.TestCase):
             public_dir = Path(tmp) / "public"
             self._write_file(
                 public_dir / "index.html",
-                '<title>Market Regime Dashboard</title><button data-language="en">English</button><button data-language="zh">中文</button>',
+                '<title>Nasdaq 100 Market Regime Dashboard</title><button data-language="en">English</button><button data-language="zh">中文</button>',
             )
 
             with self.assertRaisesRegex(RuntimeError, "bilingual markers"):

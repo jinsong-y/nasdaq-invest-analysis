@@ -30,7 +30,7 @@ GITHUB_REPO_URL = "https://github.com/jinsong-y/nasdaq-invest-analysis"
 
 
 ZH_TEXT = {
-    "Market Regime Dashboard": "市场状态仪表盘",
+    "Nasdaq 100 Market Regime Dashboard": "纳指100市场状态仪表盘",
     "Finance-tech market monitor": "金融科技市场监测",
     "Market State Gauge": "市场状态指针",
     "Summary": "摘要",
@@ -41,6 +41,7 @@ ZH_TEXT = {
     "Config": "配置",
     "Recent Daily Regimes": "近期每日状态",
     "As of": "日期",
+    "Current Time": "当前天文时间",
     "Regime": "状态",
     "Action": "动作",
     "Temperature": "温度",
@@ -420,8 +421,30 @@ function setLanguage(language) {
   }
 }
 
+function updateCurrentTime() {
+  const now = new Date();
+  const options = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short"
+  };
+  const values = {
+    en: new Intl.DateTimeFormat("en-US", options).format(now),
+    zh: new Intl.DateTimeFormat("zh-CN", options).format(now)
+  };
+  for (const element of document.querySelectorAll("[data-current-time]")) {
+    element.textContent = values[element.dataset.lang] || values.en;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   setLanguage("en");
+  updateCurrentTime();
+  window.setInterval(updateCurrentTime, 1000);
   for (const button of document.querySelectorAll("[data-language]")) {
     button.addEventListener("click", function () {
       setLanguage(button.dataset.language);
@@ -457,14 +480,14 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             "<head>",
             '<meta charset="utf-8">',
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
-            "<title>Market Regime Dashboard</title>",
+            "<title>Nasdaq 100 Market Regime Dashboard</title>",
             f"<style>{CSS}</style>",
             "</head>",
             '<body class="lang-en">',
             "<main>",
             '<div class="topbar">',
             '<div class="brand-block">',
-            f"<h1>{_localized('Market Regime Dashboard')}</h1>",
+            f"<h1>{_localized('Nasdaq 100 Market Regime Dashboard')}</h1>",
             f'<p class="subtitle">{_localized("Finance-tech market monitor")}</p>',
             "</div>",
             '<div class="top-actions">',
@@ -491,7 +514,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
 
 def _summary_grid(summary: dict[str, Any]) -> str:
     metrics = [
-        ("As of", summary.get("as_of_date", "")),
+        ("Current Time", _current_time_value()),
         ("Regime", _translated_regime_value(summary.get("market_regime", ""))),
         ("Action", _translated_value(summary.get("dashboard_action", ""))),
         ("Temperature", summary.get("temperature_score", "")),
@@ -608,6 +631,14 @@ def _latest_inputs_html(summary: dict[str, Any]) -> str:
     return (
         f'<p class="panel-kicker">{_localized("Data date")}: {escape(as_of)}</p>'
         f'{_key_value_list(summary.get("inputs", {}))}'
+    )
+
+
+def _current_time_value() -> tuple[str, str]:
+    fallback = "--"
+    return (
+        f'<span data-current-time data-lang="en">{fallback}</span>',
+        f'<span data-current-time data-lang="zh">{fallback}</span>',
     )
 
 
@@ -794,8 +825,17 @@ def _translated_regime_value(value: Any) -> tuple[str, str]:
 def _format_display_value(value: Any) -> str:
     if isinstance(value, tuple):
         english, chinese = value
+        if _is_trusted_localized_html(english, chinese):
+            return f"{english}{chinese}"
         return f'<span data-lang="en">{escape(english)}</span><span data-lang="zh">{escape(chinese)}</span>'
     return escape(_format_value(value))
+
+
+def _is_trusted_localized_html(english: str, chinese: str) -> bool:
+    return (
+        english.startswith('<span data-current-time data-lang="en">')
+        and chinese.startswith('<span data-current-time data-lang="zh">')
+    )
 
 
 def _language_toggle() -> str:

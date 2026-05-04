@@ -742,8 +742,8 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn('data-language="zh"', html)
             self.assertIn('data-lang="en"', html)
             self.assertIn('data-lang="zh"', html)
-            self.assertIn("Market Regime Dashboard", html)
-            self.assertIn("市场状态仪表盘", html)
+            self.assertIn("Nasdaq 100 Market Regime Dashboard", html)
+            self.assertIn("纳指100市场状态仪表盘", html)
             self.assertIn("市场状态指针", html)
 
     def test_write_dashboard_outputs_renders_bilingual_methodology(self):
@@ -811,6 +811,17 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("Data date", html)
             self.assertIn("数据日期", html)
             self.assertIn("2026-04-30", html)
+
+    def test_write_dashboard_outputs_summary_shows_current_time_container(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn("Current Time", html)
+            self.assertIn("当前天文时间", html)
+            self.assertIn("data-current-time", html)
+            self.assertIn("updateCurrentTime", html)
 
     def test_write_dashboard_outputs_recent_daily_regimes_newest_first(self):
         with TemporaryDirectory() as tmp:
