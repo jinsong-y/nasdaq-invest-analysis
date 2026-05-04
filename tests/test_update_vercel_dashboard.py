@@ -125,5 +125,89 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self.assertFalse((root / "public").exists())
 
 
+class UpdateDashboardFileTests(unittest.TestCase):
+    def _write_file(self, path: Path, text: str = "x") -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def _write_source_tree(self, root: Path) -> None:
+        self._write_file(root / "data" / "processed" / "market_indicators.csv", "date,ndx\n2026-05-04,100\n")
+        self._write_file(root / "data" / "processed" / "data_manifest.json", '{"ok": true}\n')
+        self._write_file(root / "data" / "raw" / "fred" / "NASDAQ100.csv", "observation_date,NASDAQ100\n2026-05-04,100\n")
+        self._write_file(root / "data" / "raw" / "cnn" / "fear_greed_live.json", '{"score": 50, "timestamp": 1}\n')
+
+    def _write_report_tree(self, root: Path) -> None:
+        report_dir = root / "reports" / "market_regime"
+        html = (
+            "<!doctype html><title>Market Regime Dashboard</title>"
+            "<body>市场状态仪表盘"
+            '<button data-language="en">English</button>'
+            '<button data-language="zh">中文</button>'
+            "</body>"
+        )
+        self._write_file(report_dir / "index.html", html)
+        self._write_file(report_dir / "latest.json", '{"as_of_date": "2026-05-04"}\n')
+        self._write_file(report_dir / "daily_regimes.csv", "date,market_regime\n2026-05-04,normal\n")
+
+    def test_sync_dashboard_to_public_copies_required_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_report_tree(root)
+
+            update_vercel_dashboard.sync_dashboard_to_public(
+                root / "reports" / "market_regime",
+                root / "public",
+            )
+
+            self.assertTrue((root / "public" / "index.html").is_file())
+            self.assertTrue((root / "public" / "latest.json").is_file())
+            self.assertTrue((root / "public" / "daily_regimes.csv").is_file())
+
+    def test_validate_bilingual_dashboard_fails_when_chinese_marker_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            public_dir = Path(tmp) / "public"
+            self._write_file(
+                public_dir / "index.html",
+                '<title>Market Regime Dashboard</title><button data-language="en">English</button><button data-language="zh">中文</button>',
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "bilingual markers"):
+                update_vercel_dashboard.validate_bilingual_dashboard(public_dir)
+
+    def test_write_data_snapshot_copies_processed_and_raw_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_source_tree(root)
+
+            snapshot_dir = update_vercel_dashboard.write_data_snapshot(root, "2026-05-04")
+            update_vercel_dashboard.validate_snapshot(snapshot_dir)
+
+            self.assertEqual(root / "data" / "snapshots" / "2026-05-04", snapshot_dir)
+            self.assertTrue((snapshot_dir / "market_indicators.csv").is_file())
+            self.assertTrue((snapshot_dir / "data_manifest.json").is_file())
+            self.assertTrue((snapshot_dir / "raw" / "fred" / "NASDAQ100.csv").is_file())
+            self.assertTrue((snapshot_dir / "raw" / "cnn" / "fear_greed_live.json").is_file())
+
+    def test_write_data_snapshot_fails_when_snapshot_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_source_tree(root)
+            (root / "data" / "snapshots" / "2026-05-04").mkdir(parents=True)
+
+            with self.assertRaisesRegex(RuntimeError, "snapshot already exists"):
+                update_vercel_dashboard.write_data_snapshot(root, "2026-05-04")
+
+    def test_validate_public_outputs_checks_latest_date_and_bilingual_html(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_report_tree(root)
+            update_vercel_dashboard.sync_dashboard_to_public(
+                root / "reports" / "market_regime",
+                root / "public",
+            )
+
+            update_vercel_dashboard.validate_public_outputs(root / "public", "2026-05-04")
+
+
 if __name__ == "__main__":
     unittest.main()
