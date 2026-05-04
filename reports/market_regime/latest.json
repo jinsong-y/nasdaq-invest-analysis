@@ -27,5 +27,10 @@
     "vix_pctile": 0.40048348106365833,
     "vxn": 21.79,
     "vxn_pctile": 0.4896949711459192
+  },
+  "config_metadata": {
+    "config_source": "recommended robustness config",
+    "recommendation_generated_at": "2026-05-04T01:07:44.216965+00:00",
+    "robustness_report_path": "reports/market_regime_robustness/index.html"
   }
 }

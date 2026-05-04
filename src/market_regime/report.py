@@ -32,6 +32,7 @@ ZH_TEXT = {
     "Drivers": "主要驱动",
     "Risks": "风险",
     "Latest Inputs": "最新输入",
+    "Config": "配置",
     "Recent Daily Regimes": "近期每日状态",
     "As of": "日期",
     "Regime": "状态",
@@ -367,6 +368,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             _language_toggle(),
             "</div>",
             _summary_grid(summary),
+            _config_metadata_html(summary),
             _section("Market State Gauge", _regime_gauge(summary)),
             _section("Summary", _summary_paragraph(summary)),
             _section("Drivers", _list(summary.get("drivers", []))),
@@ -397,6 +399,15 @@ def _summary_grid(summary: dict[str, Any]) -> str:
         for label, value in metrics
     ]
     return f'<section class="summary">{"".join(cards)}</section>'
+
+
+def _config_metadata_html(summary: dict[str, Any]) -> str:
+    metadata = summary.get("config_metadata")
+    if not metadata:
+        return ""
+    if not isinstance(metadata, dict):
+        raise ValueError("config_metadata must be a dict")
+    return _section("Config", _key_value_list(metadata))
 
 
 def _regime_gauge(summary: dict[str, Any]) -> str:

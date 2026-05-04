@@ -1,0 +1,78 @@
+{
+  "changed_params": {
+    "overheat_threshold": {
+      "current": 70.0,
+      "recommended": 75.0
+    },
+    "recovery_dist_sma_ceiling": {
+      "current": 0.08,
+      "recommended": 0.06
+    },
+    "recovery_temperature_ceiling": {
+      "current": 65.0,
+      "recommended": 60.0
+    },
+    "recovery_threshold": {
+      "current": 55.0,
+      "recommended": 60.0
+    },
+    "stress_low_threshold": {
+      "current": 55.0,
+      "recommended": 60.0
+    },
+    "warm_threshold": {
+      "current": 60.0,
+      "recommended": 65.0
+    }
+  },
+  "current_config": {
+    "low_confidence_threshold": 45.0,
+    "overheat_threshold": 70.0,
+    "panic_low_threshold": 75.0,
+    "recovery_dist_sma_ceiling": 0.08,
+    "recovery_overheat_ceiling": 50.0,
+    "recovery_temperature_ceiling": 65.0,
+    "recovery_threshold": 55.0,
+    "recovery_top_risk_ceiling": 55.0,
+    "repair_ma_days": 50,
+    "rolling_high_days": 252,
+    "sentiment_lookback_days": 1260,
+    "sma_period": 180,
+    "stress_low_threshold": 55.0,
+    "top_risk_threshold": 75.0,
+    "top_risk_watch_threshold": 70.0,
+    "warm_threshold": 60.0
+  },
+  "current_config_id": "stress55_rec55_warm60_over70_watch70_top75_rectemp65_rectop55_recover50_recdist0p08",
+  "current_score": 113.72366182407745,
+  "generated_at": "2026-05-04T01:07:44.216965+00:00",
+  "key_improvements": [
+    "robust_score 113.7237 -> 116.5871",
+    "changed_params=6"
+  ],
+  "proceed_to_approach_b": false,
+  "recommended_config": {
+    "low_confidence_threshold": 45.0,
+    "overheat_threshold": 75.0,
+    "panic_low_threshold": 75.0,
+    "recovery_dist_sma_ceiling": 0.06,
+    "recovery_overheat_ceiling": 50.0,
+    "recovery_temperature_ceiling": 60.0,
+    "recovery_threshold": 60.0,
+    "recovery_top_risk_ceiling": 55.0,
+    "repair_ma_days": 50,
+    "rolling_high_days": 252,
+    "sentiment_lookback_days": 1260,
+    "sma_period": 180,
+    "stress_low_threshold": 60.0,
+    "top_risk_threshold": 75.0,
+    "top_risk_watch_threshold": 70.0,
+    "warm_threshold": 65.0
+  },
+  "recommended_config_id": "stress60_rec60_warm65_over75_watch70_top75_rectemp60_rectop55_recover50_recdist0p06",
+  "remaining_weaknesses": [
+    "Threshold-only approach passes current robustness checks; monitor future misclassifications."
+  ],
+  "robust_score": 116.5871083081098,
+  "score_delta": 2.8634464840323517
+}

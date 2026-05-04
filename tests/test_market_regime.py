@@ -746,6 +746,22 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("市场状态仪表盘", html)
             self.assertIn("市场状态指针", html)
 
+    def test_write_dashboard_outputs_renders_config_metadata(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["config_metadata"] = {
+                "config_source": "recommended robustness config",
+                "recommendation_generated_at": "2026-05-04T00:00:00+00:00",
+                "robustness_report_path": "reports/market_regime_robustness/index.html",
+            }
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn("recommended robustness config", html)
+            self.assertIn("reports/market_regime_robustness/index.html", html)
+            self.assertIn("配置", html)
+
 
 class MarketRegimeWorkflowTests(unittest.TestCase):
     def test_run_workflow_writes_outputs_for_complete_target_date(self):
@@ -758,6 +774,36 @@ class MarketRegimeWorkflowTests(unittest.TestCase):
             self.assertTrue((output_dir / "latest.json").exists())
             self.assertTrue((output_dir / "index.html").exists())
             self.assertIn("market_regime", (output_dir / "latest.json").read_text(encoding="utf-8"))
+
+    def test_run_workflow_uses_recommended_config_metadata(self):
+        from scripts.run_market_regime_dashboard import load_recommendation_metadata, load_recommended_config, run_workflow
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config_path = root / "recommended_config.py"
+            config_path.write_text(
+                "from src.market_regime.config import DashboardConfig\n\n"
+                "def recommended_config() -> DashboardConfig:\n"
+                "    return DashboardConfig(stress_low_threshold=60.0)\n",
+                encoding="utf-8",
+            )
+            (root / "recommendation.json").write_text(
+                json.dumps({"generated_at": "2026-05-04T00:00:00+00:00"}),
+                encoding="utf-8",
+            )
+            output_dir = root / "dashboard"
+
+            config = load_recommended_config(config_path)
+            run_workflow(
+                output_dir=output_dir,
+                target_date="2026-04-30",
+                config=config,
+                config_metadata=load_recommendation_metadata(config_path),
+            )
+
+            latest = json.loads((output_dir / "latest.json").read_text(encoding="utf-8"))
+            self.assertEqual("recommended robustness config", latest["config_metadata"]["config_source"])
+            self.assertIn("recommended robustness config", (output_dir / "index.html").read_text(encoding="utf-8"))
 
     def test_run_workflow_fails_fast_for_latest_missing_volatility(self):
         from scripts.run_market_regime_dashboard import run_workflow
