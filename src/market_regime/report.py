@@ -52,6 +52,7 @@ ZH_TEXT = {
     "Copy Markdown": "复制 Markdown",
     "Copied": "已复制",
     "Copy failed": "复制失败",
+    "Send this page info to your AI for further analysis": "将本页信息发送给你的 AI 继续分析",
     "current regime": "当前状态",
     "Panic Low": "恐慌低位",
     "Stress Low": "压力偏低",
@@ -182,6 +183,18 @@ h1 {
 }
 
 .top-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.copy-action {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.secondary-actions {
   display: flex;
   gap: 10px;
   align-items: center;
@@ -226,6 +239,15 @@ h1 {
   font-size: 13px;
   font-weight: 800;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.copy-helper {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .copy-button:hover {
@@ -751,6 +773,19 @@ tbody tr:hover {
 
   .top-actions {
     justify-content: flex-start;
+    justify-items: start;
+  }
+
+  .copy-action {
+    justify-items: start;
+  }
+
+  .copy-helper {
+    text-align: left;
+  }
+
+  .secondary-actions {
+    justify-content: flex-start;
   }
 
   .gauge-grid {
@@ -1024,8 +1059,10 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             "</div>",
             '<div class="top-actions">',
             _copy_markdown_button(),
+            '<div class="secondary-actions">',
             _github_link(),
             _language_toggle(),
+            "</div>",
             "</div>",
             "</div>",
             _summary_grid(summary),
@@ -1631,9 +1668,12 @@ def _language_toggle() -> str:
 
 def _copy_markdown_button() -> str:
     return (
+        '<div class="copy-action">'
         '<button type="button" class="copy-button" data-copy-markdown data-copy-state="">'
         f'{_localized("Copy Markdown")}'
         "</button>"
+        f'<p class="copy-helper">{_localized("Send this page info to your AI for further analysis")}</p>'
+        "</div>"
     )
 
 

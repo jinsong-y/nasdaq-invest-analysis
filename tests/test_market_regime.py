@@ -760,10 +760,14 @@ class MarketRegimeReportTests(unittest.TestCase):
             write_dashboard_outputs(output_dir, self._daily(), self._summary())
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="copy-action"', html)
             self.assertIn('class="copy-button"', html)
+            self.assertIn('class="copy-helper"', html)
             self.assertIn("data-copy-markdown", html)
             self.assertIn("Copy Markdown", html)
             self.assertIn("复制 Markdown", html)
+            self.assertIn("Send this page info to your AI for further analysis", html)
+            self.assertIn("将本页信息发送给你的 AI 继续分析", html)
             self.assertIn("buildDashboardMarkdown", html)
             self.assertIn("copyDashboardMarkdown", html)
             self.assertIn("navigator.clipboard.writeText", html)
@@ -904,6 +908,7 @@ class MarketRegimeReportTests(unittest.TestCase):
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
             self.assertIn('class="top-actions"', html)
+            self.assertIn('class="secondary-actions"', html)
             self.assertIn('class="github-link"', html)
             self.assertIn('https://github.com/jinsong-y/nasdaq-invest-analysis', html)
             self.assertIn("Finance-tech market monitor", html)

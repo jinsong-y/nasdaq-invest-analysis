@@ -80,6 +80,18 @@ h1 {
 }
 
 .top-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.copy-action {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+}
+
+.secondary-actions {
   display: flex;
   gap: 10px;
   align-items: center;
@@ -124,6 +136,15 @@ h1 {
   font-size: 13px;
   font-weight: 800;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.copy-helper {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .copy-button:hover {
@@ -649,6 +670,19 @@ tbody tr:hover {
 
   .top-actions {
     justify-content: flex-start;
+    justify-items: start;
+  }
+
+  .copy-action {
+    justify-items: start;
+  }
+
+  .copy-helper {
+    text-align: left;
+  }
+
+  .secondary-actions {
+    justify-content: flex-start;
   }
 
   .gauge-grid {
@@ -691,9 +725,11 @@ tbody tr:hover {
 <p class="subtitle"><span data-lang="en">Finance-tech market monitor</span><span data-lang="zh">金融科技市场监测</span></p>
 </div>
 <div class="top-actions">
-<button type="button" class="copy-button" data-copy-markdown data-copy-state=""><span data-lang="en">Copy Markdown</span><span data-lang="zh">复制 Markdown</span></button>
+<div class="copy-action"><button type="button" class="copy-button" data-copy-markdown data-copy-state=""><span data-lang="en">Copy Markdown</span><span data-lang="zh">复制 Markdown</span></button><p class="copy-helper"><span data-lang="en">Send this page info to your AI for further analysis</span><span data-lang="zh">将本页信息发送给你的 AI 继续分析</span></p></div>
+<div class="secondary-actions">
 <a class="github-link" href="https://github.com/jinsong-y/nasdaq-invest-analysis" target="_blank" rel="noopener noreferrer"><span data-lang="en">GitHub</span><span data-lang="zh">GitHub</span></a>
 <div class="language-toggle" aria-label="Language switch"><button type="button" data-language="en" aria-pressed="true">English</button><button type="button" data-language="zh" aria-pressed="false">中文</button></div>
+</div>
 </div>
 </div>
 <section class="summary"><div class="metric metric-time"><div class="label"><span data-lang="en">Current Time</span><span data-lang="zh">当前天文时间</span></div><div class="value"><span data-current-time data-lang="en">--</span><span data-current-time data-lang="zh">--</span></div></div><div class="metric metric-regime"><div class="label"><span data-lang="en">Regime</span><span data-lang="zh">状态</span></div><div class="value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></div></div><div class="metric metric-action"><div class="label"><span data-lang="en">Action</span><span data-lang="zh">动作</span></div><div class="value"><span data-lang="en">normal_dca</span><span data-lang="zh">正常定投</span></div></div><div class="metric metric-temperature"><div class="label"><span data-lang="en">Temperature</span><span data-lang="zh">温度</span></div><div class="value">63.46</div></div><div class="metric metric-confidence"><div class="label"><span data-lang="en">Confidence</span><span data-lang="zh">置信度</span></div><div class="value">90.23</div></div></section>
