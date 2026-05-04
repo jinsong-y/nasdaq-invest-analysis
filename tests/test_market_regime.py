@@ -635,6 +635,38 @@ class MarketRegimeReportTests(unittest.TestCase):
             ]
         )
 
+    def _daily_trend(self):
+        return pd.concat(
+            [
+                self._daily().assign(date=f"2026-04-{day:02d}", temperature_score=float(score))
+                for day, score in [
+                    (1, 42),
+                    (2, 44),
+                    (3, 47),
+                    (6, 50),
+                    (7, 53),
+                    (8, 55),
+                    (9, 57),
+                    (10, 59),
+                    (13, 61),
+                    (14, 63),
+                    (15, 64),
+                    (16, 62),
+                    (17, 60),
+                    (20, 58),
+                    (21, 59),
+                    (22, 61),
+                    (23, 62),
+                    (24, 64),
+                    (27, 63),
+                    (28, 64),
+                    (29, 65),
+                    (30, 66),
+                ]
+            ],
+            ignore_index=True,
+        )
+
     def _summary(self):
         return {
             "as_of_date": "2026-04-30",
@@ -716,6 +748,26 @@ class MarketRegimeReportTests(unittest.TestCase):
                 "顶部风险观察",
             ]:
                 self.assertIn(label, html)
+
+    def test_write_dashboard_outputs_renders_score_trend_below_gauge(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily_trend(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            gauge = html.index("Market State Gauge")
+            trend = html.index("Composite Score Trend")
+            summary = html.index('data-lang="en">Summary</span>')
+            self.assertLess(gauge, trend)
+            self.assertLess(trend, summary)
+            self.assertIn("综合评分曲线", html)
+            self.assertIn('class="score-trend-chart"', html)
+            self.assertIn('data-score-range="week"', html)
+            self.assertIn('data-score-range="month"', html)
+            self.assertIn('data-score-range="year"', html)
+            self.assertIn("2026-04-30", html)
+            self.assertIn("66.00", html)
+            self.assertIn("setScoreTrendRange", html)
 
     def test_write_dashboard_outputs_localizes_active_gauge_label(self):
         with TemporaryDirectory() as tmp:

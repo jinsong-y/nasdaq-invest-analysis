@@ -33,6 +33,7 @@ ZH_TEXT = {
     "Nasdaq 100 Market Regime Dashboard": "纳指100市场状态仪表盘",
     "Finance-tech market monitor": "金融科技市场监测",
     "Market State Gauge": "市场状态指针",
+    "Composite Score Trend": "综合评分曲线",
     "Summary": "摘要",
     "How This Dashboard Works": "仪表说明",
     "Drivers": "主要驱动",
@@ -72,6 +73,12 @@ ZH_TEXT = {
     "No dominant extreme signal.": "没有主导性的极端信号。",
     "Required inputs missing.": "关键输入缺失。",
     "Current.": "当前。",
+    "Composite score": "综合评分",
+    "Daily composite score": "每日综合评分",
+    "Week": "周",
+    "Month": "月",
+    "Year": "年",
+    "No score history available.": "暂无评分历史。",
     "normal_dca": "正常定投",
     "add_strong": "强加仓",
     "add_light": "轻加仓",
@@ -344,6 +351,108 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   text-transform: uppercase;
 }
 
+.score-trend-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.score-trend-title {
+  display: grid;
+  gap: 4px;
+}
+
+.score-trend-title strong {
+  color: var(--foreground);
+  font-size: 15px;
+}
+
+.score-trend-title span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.score-range-toggle {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--muted);
+}
+
+.score-range-toggle button {
+  appearance: none;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted-foreground);
+  min-width: 58px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-weight: 800;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.score-range-toggle button[aria-pressed="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.score-trend-panel[hidden] {
+  display: none;
+}
+
+.score-trend-chart {
+  display: block;
+  width: 100%;
+  min-height: 230px;
+}
+
+.score-trend-grid {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.score-trend-axis {
+  stroke: #94a3b8;
+  stroke-width: 1.4;
+}
+
+.score-trend-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.score-trend-area {
+  fill: rgba(15, 118, 110, 0.09);
+}
+
+.score-trend-point {
+  fill: var(--card);
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+.score-trend-label {
+  fill: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.score-trend-value {
+  fill: var(--foreground);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .legend-grid {
   display: grid;
   gap: 8px;
@@ -602,6 +711,20 @@ tbody tr:hover {
     grid-column: 2;
   }
 
+  .score-trend-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .score-range-toggle {
+    width: 100%;
+  }
+
+  .score-range-toggle button {
+    flex: 1;
+    min-width: 0;
+  }
+
   .value {
     font-size: 19px;
   }
@@ -641,13 +764,28 @@ function updateCurrentTime() {
   }
 }
 
+function setScoreTrendRange(range) {
+  for (const panel of document.querySelectorAll("[data-score-panel]")) {
+    panel.hidden = panel.dataset.scorePanel !== range;
+  }
+  for (const button of document.querySelectorAll("[data-score-range]")) {
+    button.setAttribute("aria-pressed", button.dataset.scoreRange === range ? "true" : "false");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   setLanguage("en");
+  setScoreTrendRange("week");
   updateCurrentTime();
   window.setInterval(updateCurrentTime, 1000);
   for (const button of document.querySelectorAll("[data-language]")) {
     button.addEventListener("click", function () {
       setLanguage(button.dataset.language);
+    });
+  }
+  for (const button of document.querySelectorAll("[data-score-range]")) {
+    button.addEventListener("click", function () {
+      setScoreTrendRange(button.dataset.scoreRange);
     });
   }
 });
@@ -698,6 +836,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             _summary_grid(summary),
             _config_metadata_html(summary),
             _section("Market State Gauge", _regime_gauge(summary)),
+            _section("Composite Score Trend", _score_trend_html(daily, summary)),
             _section("Summary", _summary_paragraph(summary)),
             _section("How This Dashboard Works", _methodology_html()),
             _section("Drivers", _list(summary.get("drivers", []))),
@@ -767,6 +906,156 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
         f'<ul class="legend-grid">{legend}</ul>'
         "</div>"
     )
+
+
+def _score_trend_html(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
+    if "date" not in daily.columns or "temperature_score" not in daily.columns:
+        return f"<p>{_localized('No score history available.')}</p>"
+
+    panels = "".join(
+        _score_trend_panel(daily, summary, key, days)
+        for key, days in [("week", 7), ("month", 31), ("year", 366)]
+    )
+    if not panels:
+        return f"<p>{_localized('No score history available.')}</p>"
+    return (
+        '<div class="score-trend">'
+        '<div class="score-trend-header">'
+        '<div class="score-trend-title">'
+        f'<strong>{_localized("Daily composite score")}</strong>'
+        f'<span>{_localized("Composite score")}: temperature_score</span>'
+        "</div>"
+        '<div class="score-range-toggle" aria-label="Score trend range">'
+        '<button type="button" data-score-range="week" aria-pressed="true">'
+        f'{_localized("Week")}</button>'
+        '<button type="button" data-score-range="month" aria-pressed="false">'
+        f'{_localized("Month")}</button>'
+        '<button type="button" data-score-range="year" aria-pressed="false">'
+        f'{_localized("Year")}</button>'
+        "</div>"
+        "</div>"
+        f"{panels}"
+        "</div>"
+    )
+
+
+def _score_trend_panel(daily: pd.DataFrame, summary: dict[str, Any], key: str, days: int) -> str:
+    rows = _score_trend_rows(daily, summary, days)
+    if rows.empty:
+        return ""
+    return (
+        f'<div class="score-trend-panel" data-score-panel="{key}"'
+        f'{" hidden" if key != "week" else ""}>'
+        f"{_score_trend_svg(rows, key)}"
+        "</div>"
+    )
+
+
+def _score_trend_rows(daily: pd.DataFrame, summary: dict[str, Any], days: int) -> pd.DataFrame:
+    rows = daily[["date", "temperature_score"]].copy()
+    rows["_date"] = pd.to_datetime(rows["date"], errors="coerce")
+    rows["_score"] = pd.to_numeric(rows["temperature_score"], errors="coerce")
+    rows = rows.dropna(subset=["_date", "_score"]).sort_values("_date")
+    if rows.empty:
+        return rows
+
+    as_of = pd.to_datetime(summary.get("as_of_date"), errors="coerce")
+    end_date = rows["_date"].max() if pd.isna(as_of) else as_of
+    start_date = end_date - pd.Timedelta(days=days - 1)
+    return rows[(rows["_date"] >= start_date) & (rows["_date"] <= end_date)].tail(260)
+
+
+def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
+    width = 920.0
+    height = 260.0
+    left = 54.0
+    right = 20.0
+    top = 22.0
+    bottom = 38.0
+    plot_width = width - left - right
+    plot_height = height - top - bottom
+    count = len(rows)
+
+    points = []
+    for idx, (_, row) in enumerate(rows.iterrows()):
+        score = min(100.0, max(0.0, float(row["_score"])))
+        x = left + (plot_width * idx / max(count - 1, 1))
+        y = top + (plot_height * (100.0 - score) / 100.0)
+        points.append((x, y, row["_date"], score))
+
+    path = _svg_line_path([(x, y) for x, y, _, _ in points])
+    area = _svg_area_path([(x, y) for x, y, _, _ in points], top + plot_height)
+    circles = "".join(
+        f'<circle class="score-trend-point" cx="{x:.2f}" cy="{y:.2f}" r="3.2">'
+        f"<title>{date.date().isoformat()}: {score:.2f}</title>"
+        "</circle>"
+        for x, y, date, score in _sample_points(points)
+    )
+    y_grid = "".join(
+        f'<line class="score-trend-grid" x1="{left:.0f}" y1="{y:.2f}" x2="{width - right:.0f}" y2="{y:.2f}"/>'
+        f'<text class="score-trend-label" x="14" y="{y + 4:.2f}">{label}</text>'
+        for label, y in [
+            ("100", top),
+            ("75", top + plot_height * 0.25),
+            ("50", top + plot_height * 0.50),
+            ("25", top + plot_height * 0.75),
+            ("0", top + plot_height),
+        ]
+    )
+    first = points[0]
+    last = points[-1]
+    x_labels = (
+        f'<text class="score-trend-label" x="{first[0]:.2f}" y="{height - 12:.0f}" text-anchor="start">'
+        f"{first[2].date().isoformat()}</text>"
+        f'<text class="score-trend-label" x="{last[0]:.2f}" y="{height - 12:.0f}" text-anchor="end">'
+        f"{last[2].date().isoformat()}</text>"
+    )
+    value_label = (
+        f'<text class="score-trend-value" x="{last[0]:.2f}" y="{max(top + 12, last[1] - 10):.2f}" '
+        f'text-anchor="end">{last[3]:.2f}</text>'
+    )
+    title = escape(f"{range_key} composite score trend")
+    return (
+        f'<svg class="score-trend-chart" viewBox="0 0 {width:.0f} {height:.0f}" '
+        f'role="img" aria-label="{title}">'
+        f"<title>{title}</title>"
+        f"{y_grid}"
+        f'<line class="score-trend-axis" x1="{left:.0f}" y1="{top + plot_height:.0f}" '
+        f'x2="{width - right:.0f}" y2="{top + plot_height:.0f}"/>'
+        f'<path class="score-trend-area" d="{area}"/>'
+        f'<path class="score-trend-line" d="{path}"/>'
+        f"{circles}{value_label}{x_labels}"
+        "</svg>"
+    )
+
+
+def _svg_line_path(points: list[tuple[float, float]]) -> str:
+    if not points:
+        return ""
+    if len(points) == 1:
+        x, y = points[0]
+        return f"M {x:.2f} {y:.2f} L {x + 0.01:.2f} {y:.2f}"
+    start = points[0]
+    rest = " ".join(f"L {x:.2f} {y:.2f}" for x, y in points[1:])
+    return f"M {start[0]:.2f} {start[1]:.2f} {rest}"
+
+
+def _svg_area_path(points: list[tuple[float, float]], baseline: float) -> str:
+    if not points:
+        return ""
+    line = _svg_line_path(points)
+    first_x = points[0][0]
+    last_x = points[-1][0]
+    return f"{line} L {last_x:.2f} {baseline:.2f} L {first_x:.2f} {baseline:.2f} Z"
+
+
+def _sample_points(points: list[tuple[float, float, pd.Timestamp, float]]) -> list[tuple[float, float, pd.Timestamp, float]]:
+    if len(points) <= 32:
+        return points
+    indexes = {0, len(points) - 1}
+    step = max(1, len(points) // 30)
+    indexes.update(range(0, len(points), step))
+    return [points[index] for index in sorted(indexes)]
 
 
 def _band_for_regime(regime: str) -> tuple[str, str, int, int, str, str]:
