@@ -177,10 +177,10 @@ def run_update(root: Path, *, fetch: bool) -> bool:
         return False
 
     run_command([sys.executable, "scripts/run_market_regime_dashboard.py"], cwd=root)
-    sync_dashboard_to_public(report_dir, public_dir)
     snapshot_dir = write_data_snapshot(root, fetched_date)
-    validate_public_outputs(public_dir, fetched_date)
     validate_snapshot(snapshot_dir)
+    sync_dashboard_to_public(report_dir, public_dir)
+    validate_public_outputs(public_dir, fetched_date)
     print(f"Published market regime dashboard for {fetched_date}.")
     print("PUBLISHED=true")
     return True

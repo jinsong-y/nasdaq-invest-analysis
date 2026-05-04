@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +79,50 @@ class UpdateDashboardDateTests(unittest.TestCase):
         self.assertTrue(update_vercel_dashboard.should_publish("2026-05-04", "2026-05-03"))
         self.assertFalse(update_vercel_dashboard.should_publish("2026-05-04", "2026-05-04"))
         self.assertFalse(update_vercel_dashboard.should_publish("2026-05-04", "2026-05-05"))
+
+
+class UpdateDashboardWorkflowTests(unittest.TestCase):
+    def _write_file(self, path: Path, text: str = "x") -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def _write_generated_dashboard(self, root: Path, market_date: str) -> None:
+        html = (
+            "<!doctype html><title>Market Regime Dashboard</title>"
+            "<body>市场状态仪表盘"
+            '<button data-language="en">English</button>'
+            '<button data-language="zh">中文</button>'
+            "</body>"
+        )
+        self._write_file(root / "reports" / "market_regime" / "index.html", html)
+        self._write_file(root / "reports" / "market_regime" / "latest.json", json.dumps({"as_of_date": market_date}))
+        self._write_file(root / "reports" / "market_regime" / "daily_regimes.csv", "date,market_regime\n")
+
+    def test_run_update_does_not_mutate_public_when_snapshot_validation_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_file(
+                root / "data" / "processed" / "market_indicators.csv",
+                "date,ndx\n2026-05-04,100\n",
+            )
+            self._write_file(root / "data" / "processed" / "data_manifest.json", '{"ok": true}\n')
+            self._write_file(root / "data" / "raw" / "fred" / "NASDAQ100.csv", "date,ndx\n")
+            (root / "data" / "raw" / "cnn").mkdir(parents=True)
+            self._write_file(
+                root / "reports" / "market_regime" / "latest.json",
+                json.dumps({"as_of_date": "2026-05-03"}),
+            )
+
+            def fake_run_command(args, *, cwd):
+                self.assertEqual(root.resolve(), cwd)
+                self.assertEqual([sys.executable, "scripts/run_market_regime_dashboard.py"], args)
+                self._write_generated_dashboard(root, "2026-05-04")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command):
+                with self.assertRaisesRegex(RuntimeError, "snapshot has no raw CNN JSON"):
+                    update_vercel_dashboard.run_update(root, fetch=False)
+
+            self.assertFalse((root / "public").exists())
 
 
 if __name__ == "__main__":
