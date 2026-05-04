@@ -49,6 +49,82 @@ class UpdateDashboardDateTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "invalid date"):
                 update_vercel_dashboard.latest_market_date(path)
 
+    def test_latest_publishable_market_date_skips_incomplete_latest_row(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "market_indicators.csv"
+            self._write_dashboard_market_csv(
+                path,
+                [
+                    {
+                        "date": "2026-04-30",
+                        "ndx": "100",
+                        "vxn": "20",
+                        "vix": "15",
+                        "cnn_fear_greed": "50",
+                        "ndxe_ndx": "0.95",
+                        "sox_ndx": "0.40",
+                    },
+                    {
+                        "date": "2026-05-01",
+                        "ndx": "101",
+                        "vxn": "",
+                        "vix": "",
+                        "cnn_fear_greed": "51",
+                        "ndxe_ndx": "0.96",
+                        "sox_ndx": "0.41",
+                    },
+                ],
+            )
+
+            result = update_vercel_dashboard.latest_publishable_market_date(path)
+
+        self.assertEqual("2026-04-30", result)
+
+    def test_latest_publishable_market_date_fails_when_required_column_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "market_indicators.csv"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=["date", "ndx", "vix", "cnn_fear_greed", "ndxe_ndx", "sox_ndx"],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "date": "2026-04-30",
+                        "ndx": "100",
+                        "vix": "15",
+                        "cnn_fear_greed": "50",
+                        "ndxe_ndx": "0.95",
+                        "sox_ndx": "0.40",
+                    }
+                )
+
+            with self.assertRaisesRegex(RuntimeError, "missing required dashboard columns"):
+                update_vercel_dashboard.latest_publishable_market_date(path)
+
+    def test_latest_publishable_market_date_fails_when_no_complete_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "market_indicators.csv"
+            self._write_dashboard_market_csv(
+                path,
+                [
+                    {
+                        "date": "2026-04-30",
+                        "ndx": "100",
+                        "vxn": "",
+                        "vix": "",
+                        "cnn_fear_greed": "50",
+                        "ndxe_ndx": "0.95",
+                        "sox_ndx": "0.40",
+                    }
+                ],
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "no publishable market dates"):
+                update_vercel_dashboard.latest_publishable_market_date(path)
+
     def test_latest_published_date_prefers_latest_json_and_snapshots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -82,6 +158,14 @@ class UpdateDashboardDateTests(unittest.TestCase):
         self.assertFalse(update_vercel_dashboard.should_publish("2026-05-04", "2026-05-04"))
         self.assertFalse(update_vercel_dashboard.should_publish("2026-05-04", "2026-05-05"))
 
+    def _write_dashboard_market_csv(self, path: Path, rows: list[dict[str, str]]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fieldnames = ["date", "ndx", "vxn", "vix", "cnn_fear_greed", "ndxe_ndx", "sox_ndx"]
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
 
 class UpdateDashboardWorkflowTests(unittest.TestCase):
     def _write_file(self, path: Path, text: str = "x") -> None:
@@ -91,7 +175,10 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
     def _write_minimal_root(self, root: Path, *, market_date: str, published_date: str | None) -> None:
         self._write_file(
             root / "data" / "processed" / "market_indicators.csv",
-            f"date,ndx\n{market_date},100\n",
+            (
+                "date,ndx,vxn,vix,cnn_fear_greed,ndxe_ndx,sox_ndx\n"
+                f"{market_date},100,20,15,50,0.95,0.40\n"
+            ),
         )
         self._write_file(root / "data" / "processed" / "data_manifest.json", '{"ok": true}\n')
         self._write_file(root / "data" / "raw" / "fred" / "NASDAQ100.csv", "observation_date,NASDAQ100\n")
@@ -127,6 +214,29 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self.assertFalse((root / "public").exists())
             self.assertFalse((root / "data" / "snapshots" / "2026-05-04").exists())
 
+    def test_run_update_noops_when_raw_latest_is_newer_but_publishable_date_is_already_published(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_file(
+                root / "data" / "processed" / "market_indicators.csv",
+                (
+                    "date,ndx,vxn,vix,cnn_fear_greed,ndxe_ndx,sox_ndx\n"
+                    "2026-04-30,100,20,15,50,0.95,0.40\n"
+                    "2026-05-01,101,,,51,0.96,0.41\n"
+                ),
+            )
+            self._write_file(
+                root / "reports" / "market_regime" / "latest.json",
+                json.dumps({"as_of_date": "2026-04-30"}),
+            )
+
+            with mock.patch.object(update_vercel_dashboard, "run_command") as run_command:
+                published = update_vercel_dashboard.run_update(root, fetch=False)
+
+            self.assertFalse(published)
+            run_command.assert_not_called()
+            self.assertFalse((root / "public").exists())
+
     def test_run_update_publishes_when_fetched_date_is_newer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -134,7 +244,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
 
             def fake_run_command(args, *, cwd):
                 self.assertEqual(root, cwd)
-                if args[-1] == "scripts/run_market_regime_dashboard.py":
+                if args[1] == "scripts/run_market_regime_dashboard.py":
                     self._write_generated_dashboard(root, "2026-05-04")
 
             with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
@@ -142,6 +252,15 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
 
             self.assertTrue(published)
             self.assertEqual(1, run_command.call_count)
+            self.assertEqual(
+                [
+                    sys.executable,
+                    "scripts/run_market_regime_dashboard.py",
+                    "--target-date",
+                    "2026-05-04",
+                ],
+                run_command.call_args.args[0],
+            )
             self.assertTrue((root / "public" / "index.html").is_file())
             self.assertTrue((root / "data" / "snapshots" / "2026-05-04" / "market_indicators.csv").is_file())
 
@@ -152,7 +271,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
 
             def fake_run_command(args, *, cwd):
                 self.assertEqual(root, cwd)
-                if args[-1] == "scripts/run_market_regime_dashboard.py":
+                if args[1] == "scripts/run_market_regime_dashboard.py":
                     self._write_generated_dashboard(root, "2026-05-04")
 
             with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
@@ -162,7 +281,12 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self.assertEqual(
                 [
                     [sys.executable, "scripts/fetch_data.py"],
-                    [sys.executable, "scripts/run_market_regime_dashboard.py"],
+                    [
+                        sys.executable,
+                        "scripts/run_market_regime_dashboard.py",
+                        "--target-date",
+                        "2026-05-04",
+                    ],
                 ],
                 [call.args[0] for call in run_command.call_args_list],
             )
@@ -172,7 +296,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             root = Path(tmp)
             self._write_file(
                 root / "data" / "processed" / "market_indicators.csv",
-                "date,ndx\n2026-05-04,100\n",
+                "date,ndx,vxn,vix,cnn_fear_greed,ndxe_ndx,sox_ndx\n2026-05-04,100,20,15,50,0.95,0.40\n",
             )
             self._write_file(root / "data" / "processed" / "data_manifest.json", '{"ok": true}\n')
             self._write_file(root / "data" / "raw" / "fred" / "NASDAQ100.csv", "date,ndx\n")
@@ -184,7 +308,15 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
 
             def fake_run_command(args, *, cwd):
                 self.assertEqual(root, cwd)
-                self.assertEqual([sys.executable, "scripts/run_market_regime_dashboard.py"], args)
+                self.assertEqual(
+                    [
+                        sys.executable,
+                        "scripts/run_market_regime_dashboard.py",
+                        "--target-date",
+                        "2026-05-04",
+                    ],
+                    args,
+                )
                 self._write_generated_dashboard(root, "2026-05-04")
 
             with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command):
@@ -200,7 +332,10 @@ class UpdateDashboardFileTests(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
 
     def _write_source_tree(self, root: Path) -> None:
-        self._write_file(root / "data" / "processed" / "market_indicators.csv", "date,ndx\n2026-05-04,100\n")
+        self._write_file(
+            root / "data" / "processed" / "market_indicators.csv",
+            "date,ndx,vxn,vix,cnn_fear_greed,ndxe_ndx,sox_ndx\n2026-05-04,100,20,15,50,0.95,0.40\n",
+        )
         self._write_file(root / "data" / "processed" / "data_manifest.json", '{"ok": true}\n')
         self._write_file(root / "data" / "raw" / "fred" / "NASDAQ100.csv", "observation_date,NASDAQ100\n2026-05-04,100\n")
         self._write_file(root / "data" / "raw" / "cnn" / "fear_greed_live.json", '{"score": 50, "timestamp": 1}\n')

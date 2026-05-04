@@ -13,6 +13,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_FILES = ("index.html", "latest.json", "daily_regimes.csv")
+REQUIRED_DASHBOARD_COLUMNS = (
+    "ndx",
+    "vxn",
+    "vix",
+    "cnn_fear_greed",
+    "ndxe_ndx",
+    "sox_ndx",
+)
 BILINGUAL_MARKERS = (
     "Market Regime Dashboard",
     "市场状态仪表盘",
@@ -47,6 +55,28 @@ def latest_market_date(path: Path) -> str:
                 dates.append(parse_market_date(value))
     if not dates:
         fail(f"no market dates found in {path}")
+    return max(dates)
+
+
+def latest_publishable_market_date(path: Path) -> str:
+    if not path.exists():
+        fail(f"market indicators CSV missing: {path}")
+    dates: list[str] = []
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames or []
+        required = ("date", *REQUIRED_DASHBOARD_COLUMNS)
+        missing = [column for column in required if column not in fieldnames]
+        if missing:
+            fail(f"missing required dashboard columns in {path}: {', '.join(missing)}")
+        for row in reader:
+            value = (row.get("date") or "").strip()
+            if not value:
+                continue
+            if all((row.get(column) or "").strip() for column in REQUIRED_DASHBOARD_COLUMNS):
+                dates.append(parse_market_date(value))
+    if not dates:
+        fail(f"no publishable market dates found in {path}")
     return max(dates)
 
 
@@ -166,7 +196,7 @@ def run_update(root: Path, *, fetch: bool) -> bool:
     if fetch:
         run_command([sys.executable, "scripts/fetch_data.py"], cwd=root)
 
-    fetched_date = latest_market_date(data_path)
+    fetched_date = latest_publishable_market_date(data_path)
     published_date = latest_published_date(latest_json_path, snapshots_dir)
     if not should_publish(fetched_date, published_date):
         print(
@@ -176,7 +206,15 @@ def run_update(root: Path, *, fetch: bool) -> bool:
         print("PUBLISHED=false")
         return False
 
-    run_command([sys.executable, "scripts/run_market_regime_dashboard.py"], cwd=root)
+    run_command(
+        [
+            sys.executable,
+            "scripts/run_market_regime_dashboard.py",
+            "--target-date",
+            fetched_date,
+        ],
+        cwd=root,
+    )
     snapshot_dir = write_data_snapshot(root, fetched_date)
     validate_snapshot(snapshot_dir)
     sync_dashboard_to_public(report_dir, public_dir)
