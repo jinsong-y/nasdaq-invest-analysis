@@ -175,6 +175,7 @@ Create `reports/market_regime_robustness/` with:
 - `extreme_dates.csv`
 - `misclassification_review.csv`
 - `recommendation.json`
+- `recommended_config.py`
 - `index.html`
 
 `recommendation.json` should include:
@@ -186,6 +187,32 @@ Create `reports/market_regime_robustness/` with:
 - remaining weaknesses
 - whether to proceed to approach B, changing score weights
 
+`recommended_config.py` should contain a directly usable `DashboardConfig` factory:
+
+```python
+from src.market_regime.config import DashboardConfig
+
+
+def recommended_config() -> DashboardConfig:
+    return DashboardConfig(...)
+```
+
+The robustness `index.html` should show:
+
+- current config
+- recommended config
+- changed parameters
+- robust score comparison
+- key-date pass/fail table
+- copyable Python config snippet
+
+The market regime dashboard HTML should also be refreshed after the recommendation is selected. It should show which config was used:
+
+- default/current config
+- recommended robustness config
+- recommendation timestamp
+- link or path to `reports/market_regime_robustness/index.html`
+
 ## Acceptance Criteria
 
 The loop is successful when it can:
@@ -194,6 +221,8 @@ The loop is successful when it can:
 - Rank configurations by robustness score.
 - Show whether the current dashboard config is already close to optimal.
 - Produce a recommended threshold-only config.
+- Write the recommendation to `reports/market_regime_robustness/recommended_config.py`.
+- Refresh the dashboard HTML using the recommended config or clearly label when the dashboard still uses the current default config.
 - Explain why the recommendation is better, not just higher-scoring.
 - Identify remaining weak points for a possible next round.
 
