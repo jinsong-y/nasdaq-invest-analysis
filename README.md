@@ -18,6 +18,34 @@
 | 数据清单 | `docs/DATA_INVENTORY.md` |
 | 项目结构说明 | `docs/PROJECT_STRUCTURE.md` |
 
+## 市场状态 Dashboard
+
+线上地址：<https://nasdaq-invest-analysis.vercel.app>
+
+![Nasdaq 100 Market Regime Dashboard](docs/assets/market-regime-dashboard.png)
+
+### 中文说明
+
+市场状态 Dashboard 是一个 Nasdaq 100 市场环境监控面板，用来解释当前市场状态和定投节奏，不用于预测收益。
+
+- **Market State Gauge**：用红蓝反色仪表盘展示综合状态，蓝色代表恐慌/压力区间，红色代表过热/顶部风险区间，中间颜色表示修复、正常、偏热等过渡状态。
+- **Composite Score Trend**：记录每日综合评分，并支持按 `Week`、`Month`、`Year` 切换查看。不可评分、不可发布、非交易日产生的 `0` 分不会画入曲线。
+- **Latest Inputs**：展示最新交易日输入指标，包括 NDX、SMA、VIX/VXN、CNN Fear & Greed、NDXE/NDX、SOX/NDX 等。
+- **Drivers / Risks / Summary**：解释当前状态的主要驱动、风险点和摘要。
+- **Recent Daily Regimes**：展示近期每日市场状态和各项子评分。
+- **自动更新**：GitHub Actions 每天拉取数据并重建 dashboard；有新的可发布交易日时提交到 GitHub，由 Vercel 自动部署。
+
+### English Notes
+
+The Market Regime Dashboard monitors the Nasdaq 100 regime and DCA pacing. It explains market condition; it is not a return forecast.
+
+- **Market State Gauge**: uses a blue-to-red gauge. Blue marks panic or stress zones, red marks overheated or top-risk zones, and the middle colors show recovery, normal, and warm transition states.
+- **Composite Score Trend**: tracks the daily composite score with `Week`, `Month`, and `Year` views. Unscorable, unavailable, and non-trading rows with `0` scores are excluded from the chart.
+- **Latest Inputs**: shows the latest market inputs, including NDX, SMA, VIX/VXN, CNN Fear & Greed, NDXE/NDX, and SOX/NDX.
+- **Drivers / Risks / Summary**: explains the main state drivers, risk flags, and current regime summary.
+- **Recent Daily Regimes**: lists recent daily regimes and component scores.
+- **Auto update**: GitHub Actions fetches data and rebuilds the dashboard daily. When a new publishable market date is available, it commits to GitHub and Vercel auto-deploys it.
+
 ## 当前结论
 
 - Version A 跑了 33,648 组参数，0 组跑赢机械定投。
