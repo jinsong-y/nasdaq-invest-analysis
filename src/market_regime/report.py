@@ -99,21 +99,38 @@ ZH_TEXT = {
 CSS = """
 :root {
   color-scheme: light;
+  --background: #f8fafc;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --primary: #0f766e;
+  --primary-foreground: #f8fafc;
+  --accent: #b45309;
+  --accent-soft: #fffbeb;
+  --ring: rgba(15, 118, 110, 0.22);
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --radius: 8px;
   font-family: "Aptos", "Helvetica Neue", Arial, sans-serif;
-  background: #f4f7fb;
-  color: #142033;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 body {
   margin: 0;
-  padding: 40px 32px 56px;
+  padding: 32px 28px 56px;
   background:
-    linear-gradient(180deg, rgba(226, 237, 247, 0.86) 0%, rgba(244, 247, 251, 0) 280px),
-    #f4f7fb;
+    linear-gradient(180deg, rgba(15, 118, 110, 0.08) 0%, rgba(248, 250, 252, 0) 340px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    var(--background);
+  background-size: auto, 36px 36px, 36px 36px;
 }
 
 main {
-  max-width: 1180px;
+  max-width: 1220px;
   margin: 0 auto;
 }
 
@@ -123,9 +140,9 @@ h2 {
 }
 
 h1 {
-  font-size: 30px;
+  font-size: 32px;
   letter-spacing: 0;
-  color: #102033;
+  color: var(--foreground);
 }
 
 .topbar {
@@ -133,7 +150,13 @@ h1 {
   justify-content: space-between;
   gap: 24px;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.84);
+  padding: 22px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
 }
 
 .brand-block {
@@ -143,7 +166,7 @@ h1 {
 
 .subtitle {
   margin: 0;
-  color: #5d6b7a;
+  color: var(--muted-foreground);
   font-size: 14px;
   line-height: 1.45;
 }
@@ -159,41 +182,51 @@ h1 {
 .github-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 34px;
   padding: 0 13px;
-  border: 1px solid #c6d2df;
-  border-radius: 999px;
-  background: #102033;
-  color: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.github-link:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+  transform: translateY(-1px);
 }
 
 .language-toggle {
   display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid #d8dee7;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--muted);
 }
 
 .language-toggle button {
   appearance: none;
   border: 0;
-  border-radius: 999px;
+  border-radius: 5px;
   background: transparent;
-  color: #3b4754;
+  color: var(--muted-foreground);
   padding: 7px 12px;
   cursor: pointer;
   font-weight: 700;
+  transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
 body.lang-en .language-toggle [data-language="en"],
 body.lang-zh .language-toggle [data-language="zh"] {
-  background: #102033;
-  color: #ffffff;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
 [data-lang="zh"] {
@@ -209,70 +242,111 @@ body.lang-zh [data-lang="zh"] {
 }
 
 h2 {
-  margin-top: 34px;
+  margin-top: 30px;
   font-size: 18px;
-  color: #102033;
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h2::before {
+  content: "";
+  width: 6px;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--primary), var(--accent));
 }
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
   margin-top: 0;
 }
 
 .metric {
-  border: 1px solid #d5e0ea;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  padding: 17px;
-  box-shadow: 0 10px 28px rgba(20, 32, 51, 0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  min-height: 86px;
 }
 
 .label {
-  color: #5d6b7a;
+  color: var(--muted-foreground);
   font-size: 12px;
   text-transform: uppercase;
+  font-weight: 800;
 }
 
 .value {
   margin-top: 8px;
   font-size: 22px;
   font-weight: 700;
-  color: #102033;
+  color: var(--card-foreground);
+  overflow-wrap: anywhere;
+}
+
+.metric-regime .value [data-lang],
+.metric-action .value [data-lang] {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.metric-action .value [data-lang] {
+  border-color: rgba(180, 83, 9, 0.24);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+body.lang-en .metric-regime .value [data-lang="zh"],
+body.lang-en .metric-action .value [data-lang="zh"],
+body.lang-zh .metric-regime .value [data-lang="en"],
+body.lang-zh .metric-action .value [data-lang="en"] {
+  display: none;
 }
 
 .gauge-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 0.9fr);
-  gap: 22px;
+  grid-template-columns: minmax(300px, 1.05fr) minmax(280px, 0.95fr);
+  gap: 24px;
   align-items: center;
 }
 
 .regime-gauge {
   width: 100%;
-  max-width: 520px;
+  max-width: 540px;
   margin: 0 auto;
   display: block;
 }
 
 .gauge-label {
   text-anchor: middle;
-  fill: #18202a;
+  fill: var(--foreground);
   font-weight: 700;
   font-size: 14px;
 }
 
 .gauge-sub {
   text-anchor: middle;
-  fill: #5d6b7a;
+  fill: var(--muted-foreground);
   font-size: 9px;
   text-transform: uppercase;
 }
 
 .legend-grid {
   display: grid;
-  gap: 9px;
+  gap: 8px;
   margin: 0;
   padding: 0;
 }
@@ -283,12 +357,16 @@ h2 {
   grid-template-columns: 14px minmax(84px, 0.42fr) 1fr;
   gap: 8px;
   align-items: start;
-  color: #3b4754;
+  color: var(--muted-foreground);
   font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.68);
+  padding: 9px;
 }
 
 .legend-item strong {
-  color: #18202a;
+  color: var(--foreground);
 }
 
 .swatch {
@@ -296,58 +374,126 @@ h2 {
   height: 14px;
   border-radius: 999px;
   margin-top: 2px;
-  border: 1px solid rgba(24, 32, 42, 0.16);
+  border: 1px solid rgba(15, 23, 42, 0.16);
 }
 
 .panel {
-  border: 1px solid #d5e0ea;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
   margin-top: 14px;
   padding: 20px;
-  box-shadow: 0 12px 30px rgba(20, 32, 51, 0.045);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
 }
 
 .panel-kicker {
   margin: 0 0 14px;
-  color: #5d6b7a;
+  color: var(--muted-foreground);
   font-size: 13px;
   font-weight: 700;
 }
 
+.pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.pill-list li {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  padding: 0 10px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.input-grid li {
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--muted);
+  padding: 10px;
+}
+
+.input-key {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.input-value {
+  display: block;
+  margin-top: 6px;
+  color: var(--foreground);
+  font-size: 18px;
+  font-weight: 800;
+}
+
 .methodology {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .methodology-intro,
 .methodology-note {
   margin: 0;
-  color: #3b4754;
+  color: var(--muted-foreground);
   line-height: 1.55;
 }
 
-.methodology-group h3 {
-  margin: 0 0 8px;
-  color: #18202a;
+.methodology-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(248, 250, 252, 0.74);
+  overflow: hidden;
+}
+
+.methodology-group summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  color: var(--foreground);
   font-size: 14px;
+  font-weight: 800;
+}
+
+.methodology-group summary:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: -3px;
 }
 
 .methodology-list {
   display: grid;
   gap: 8px;
   margin: 0;
-  padding: 0;
+  padding: 0 14px 14px;
 }
 
 .methodology-list li {
   list-style: none;
-  color: #3b4754;
+  color: var(--muted-foreground);
   line-height: 1.45;
 }
 
 .methodology-list strong {
-  color: #18202a;
+  color: var(--foreground);
 }
 
 ul {
@@ -358,30 +504,38 @@ ul {
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 12px;
-  background: #ffffff;
+  background: var(--card);
+  font-size: 13px;
 }
 
 th,
 td {
-  border-bottom: 1px solid #e3e8ef;
-  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  padding: 11px 10px;
   text-align: left;
   white-space: nowrap;
 }
 
 th {
-  background: #edf4fa;
-  color: #3b4754;
+  position: sticky;
+  top: 0;
+  background: var(--muted);
+  color: var(--muted-foreground);
   font-size: 12px;
   text-transform: uppercase;
+  font-weight: 800;
+}
+
+tbody tr:hover {
+  background: rgba(15, 118, 110, 0.045);
 }
 
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid #d8dee7;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   margin-top: 12px;
+  max-height: 620px;
 }
 
 @media (max-width: 780px) {
@@ -403,7 +557,15 @@ th {
   }
 
   .legend-item {
-    grid-template-columns: 14px minmax(82px, 0.32fr) 1fr;
+    grid-template-columns: 14px 1fr;
+  }
+
+  .legend-item > span:last-child {
+    grid-column: 2;
+  }
+
+  .value {
+    font-size: 19px;
   }
 }
 """
@@ -514,18 +676,18 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
 
 def _summary_grid(summary: dict[str, Any]) -> str:
     metrics = [
-        ("Current Time", _current_time_value()),
-        ("Regime", _translated_regime_value(summary.get("market_regime", ""))),
-        ("Action", _translated_value(summary.get("dashboard_action", ""))),
-        ("Temperature", summary.get("temperature_score", "")),
-        ("Confidence", summary.get("confidence_score", "")),
+        ("Current Time", _current_time_value(), "metric-time"),
+        ("Regime", _translated_regime_value(summary.get("market_regime", "")), "metric-regime"),
+        ("Action", _translated_value(summary.get("dashboard_action", "")), "metric-action"),
+        ("Temperature", summary.get("temperature_score", ""), "metric-temperature"),
+        ("Confidence", summary.get("confidence_score", ""), "metric-confidence"),
     ]
     cards = [
-        '<div class="metric">'
+        f'<div class="metric {class_name}">'
         f'<div class="label">{_localized(label)}</div>'
         f'<div class="value">{_format_display_value(value)}</div>'
         "</div>"
-        for label, value in metrics
+        for label, value, class_name in metrics
     ]
     return f'<section class="summary">{"".join(cards)}</section>'
 
@@ -630,7 +792,7 @@ def _latest_inputs_html(summary: dict[str, Any]) -> str:
     as_of = _format_value(summary.get("as_of_date", ""))
     return (
         f'<p class="panel-kicker">{_localized("Data date")}: {escape(as_of)}</p>'
-        f'{_key_value_list(summary.get("inputs", {}))}'
+        f'{_input_grid(summary.get("inputs", {}))}'
     )
 
 
@@ -729,20 +891,20 @@ def _methodology_group(title_en: str, title_zh: str, rows: list[tuple[str, str, 
         for label_en, description_en, label_zh, description_zh in rows
     )
     return (
-        '<div class="methodology-group">'
-        f"<h3>{_localized_pair(title_en, title_zh)}</h3>"
+        '<details class="methodology-group" open>'
+        f"<summary>{_localized_pair(title_en, title_zh)}</summary>"
         f'<ul class="methodology-list">{items}</ul>'
-        "</div>"
+        "</details>"
     )
 
 
 def _methodology_validation(rows: list[tuple[str, str]]) -> str:
     items = "".join(f"<li>{_localized_pair(english, chinese)}</li>" for english, chinese in rows)
     return (
-        '<div class="methodology-group">'
-        f"<h3>{_localized_pair('Backtest validation', '回测验证')}</h3>"
+        '<details class="methodology-group" open>'
+        f"<summary>{_localized_pair('Backtest validation', '回测验证')}</summary>"
         f'<ul class="methodology-list">{items}</ul>'
-        "</div>"
+        "</details>"
     )
 
 
@@ -750,7 +912,7 @@ def _list(values: Any) -> str:
     if not isinstance(values, list) or not values:
         return "<p>None</p>"
     items = "".join(f"<li>{_localized(_format_value(value))}</li>" for value in values)
-    return f"<ul>{items}</ul>"
+    return f'<ul class="pill-list">{items}</ul>'
 
 
 def _key_value_list(values: Any) -> str:
@@ -761,6 +923,19 @@ def _key_value_list(values: Any) -> str:
         for key, value in values.items()
     )
     return f"<ul>{items}</ul>"
+
+
+def _input_grid(values: Any) -> str:
+    if not isinstance(values, dict) or not values:
+        return "<p>None</p>"
+    items = "".join(
+        '<li>'
+        f'<span class="input-key">{escape(str(key))}</span>'
+        f'<span class="input-value">{escape(_format_value(value))}</span>'
+        "</li>"
+        for key, value in values.items()
+    )
+    return f'<ul class="input-grid">{items}</ul>'
 
 
 def _table(frame: pd.DataFrame) -> str:
@@ -774,7 +949,7 @@ def _table(frame: pd.DataFrame) -> str:
         cells = "".join(f"<td>{escape(_format_value(row[column]))}</td>" for column in columns)
         body_rows.append(f"<tr>{cells}</tr>")
     body = "".join(body_rows) or f'<tr><td colspan="{len(columns)}">No daily regime rows available.</td></tr>'
-    return f'<div class="table-wrap"><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>'
+    return f'<div class="table-wrap"><table class="data-table"><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>'
 
 
 def _recent_rows(daily: pd.DataFrame) -> pd.DataFrame:
