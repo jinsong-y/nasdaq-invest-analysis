@@ -49,10 +49,10 @@ ZH_TEXT = {
     "Confidence": "置信度",
     "Data date": "数据日期",
     "GitHub": "GitHub",
-    "Copy Markdown": "复制 Markdown",
+    "copy markdown": "复制 markdown",
     "Copied": "已复制",
     "Copy failed": "复制失败",
-    "Send this page info to your AI for further analysis": "将本页信息发送给你的 AI 继续分析",
+    "send this page info to your AI for further analysis": "将本页信息发送给你的 AI 继续分析",
     "current regime": "当前状态",
     "Panic Low": "恐慌低位",
     "Stress Low": "压力偏低",
@@ -191,7 +191,12 @@ h1 {
 .copy-action {
   display: grid;
   gap: 6px;
-  justify-items: end;
+  justify-items: stretch;
+  min-width: min(100%, 292px);
+  padding: 10px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .secondary-actions {
@@ -238,16 +243,17 @@ h1 {
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
+  text-transform: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
 }
 
 .copy-helper {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.35;
-  text-align: right;
+  text-align: left;
 }
 
 .copy-button:hover {
@@ -777,7 +783,8 @@ tbody tr:hover {
   }
 
   .copy-action {
-    justify-items: start;
+    justify-items: stretch;
+    width: 100%;
   }
 
   .copy-helper {
@@ -993,8 +1000,8 @@ async function copyDashboardMarkdown() {
   }
   window.setTimeout(function () {
     button.dataset.copyState = "";
-    button.querySelector('[data-lang="en"]').textContent = "Copy Markdown";
-    button.querySelector('[data-lang="zh"]').textContent = "复制 Markdown";
+    button.querySelector('[data-lang="en"]').textContent = "copy markdown";
+    button.querySelector('[data-lang="zh"]').textContent = "复制 markdown";
   }, 1800);
 }
 
@@ -1669,10 +1676,10 @@ def _language_toggle() -> str:
 def _copy_markdown_button() -> str:
     return (
         '<div class="copy-action">'
+        f'<p class="copy-helper">{_localized("send this page info to your AI for further analysis")}</p>'
         '<button type="button" class="copy-button" data-copy-markdown data-copy-state="">'
-        f'{_localized("Copy Markdown")}'
+        f'{_localized("copy markdown")}'
         "</button>"
-        f'<p class="copy-helper">{_localized("Send this page info to your AI for further analysis")}</p>'
         "</div>"
     )
 

@@ -88,7 +88,12 @@ h1 {
 .copy-action {
   display: grid;
   gap: 6px;
-  justify-items: end;
+  justify-items: stretch;
+  min-width: min(100%, 292px);
+  padding: 10px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .secondary-actions {
@@ -135,16 +140,17 @@ h1 {
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
+  text-transform: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
 }
 
 .copy-helper {
   margin: 0;
   color: var(--muted-foreground);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.35;
-  text-align: right;
+  text-align: left;
 }
 
 .copy-button:hover {
@@ -674,7 +680,8 @@ tbody tr:hover {
   }
 
   .copy-action {
-    justify-items: start;
+    justify-items: stretch;
+    width: 100%;
   }
 
   .copy-helper {
@@ -725,7 +732,7 @@ tbody tr:hover {
 <p class="subtitle"><span data-lang="en">Finance-tech market monitor</span><span data-lang="zh">金融科技市场监测</span></p>
 </div>
 <div class="top-actions">
-<div class="copy-action"><button type="button" class="copy-button" data-copy-markdown data-copy-state=""><span data-lang="en">Copy Markdown</span><span data-lang="zh">复制 Markdown</span></button><p class="copy-helper"><span data-lang="en">Send this page info to your AI for further analysis</span><span data-lang="zh">将本页信息发送给你的 AI 继续分析</span></p></div>
+<div class="copy-action"><p class="copy-helper"><span data-lang="en">send this page info to your AI for further analysis</span><span data-lang="zh">将本页信息发送给你的 AI 继续分析</span></p><button type="button" class="copy-button" data-copy-markdown data-copy-state=""><span data-lang="en">copy markdown</span><span data-lang="zh">复制 markdown</span></button></div>
 <div class="secondary-actions">
 <a class="github-link" href="https://github.com/jinsong-y/nasdaq-invest-analysis" target="_blank" rel="noopener noreferrer"><span data-lang="en">GitHub</span><span data-lang="zh">GitHub</span></a>
 <div class="language-toggle" aria-label="Language switch"><button type="button" data-language="en" aria-pressed="true">English</button><button type="button" data-language="zh" aria-pressed="false">中文</button></div>
@@ -915,8 +922,8 @@ async function copyDashboardMarkdown() {
   }
   window.setTimeout(function () {
     button.dataset.copyState = "";
-    button.querySelector('[data-lang="en"]').textContent = "Copy Markdown";
-    button.querySelector('[data-lang="zh"]').textContent = "复制 Markdown";
+    button.querySelector('[data-lang="en"]').textContent = "copy markdown";
+    button.querySelector('[data-lang="zh"]').textContent = "复制 markdown";
   }, 1800);
 }
 
