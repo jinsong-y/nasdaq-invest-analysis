@@ -730,6 +730,7 @@ class MarketRegimeReportTests(unittest.TestCase):
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
             self.assertIn('class="regime-gauge"', html)
+            self.assertIn('viewBox="0 0 240 172"', html)
             self.assertIn("Market State Gauge", html)
             for label in [
                 "Panic Low",
@@ -752,6 +753,20 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn('stroke="#dc2626"', html)
             self.assertNotIn("Current.</span>", html)
             self.assertNotIn("当前。</span>", html)
+
+    def test_write_dashboard_outputs_renders_copy_markdown_button(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="copy-button"', html)
+            self.assertIn("data-copy-markdown", html)
+            self.assertIn("Copy Markdown", html)
+            self.assertIn("复制 Markdown", html)
+            self.assertIn("buildDashboardMarkdown", html)
+            self.assertIn("copyDashboardMarkdown", html)
+            self.assertIn("navigator.clipboard.writeText", html)
 
     def test_write_dashboard_outputs_orders_dashboard_sections(self):
         with TemporaryDirectory() as tmp:
@@ -831,8 +846,8 @@ class MarketRegimeReportTests(unittest.TestCase):
             write_dashboard_outputs(output_dir, self._daily(), summary)
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn('<text x="120" y="132" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
-            self.assertIn('<text x="120" y="132" class="gauge-label" data-lang="zh">暖修复</text>', html)
+            self.assertIn('<text x="120" y="154" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
+            self.assertIn('<text x="120" y="154" class="gauge-label" data-lang="zh">暖修复</text>', html)
             self.assertIn("Current market regime is Warm Recovery / 暖修复.", html)
             self.assertIn("暂停新买入", html)
 
@@ -903,7 +918,7 @@ class MarketRegimeReportTests(unittest.TestCase):
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
             self.assertIn('<div class="value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></div>', html)
-            self.assertIn('<text x="120" y="132" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
+            self.assertIn('<text x="120" y="154" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
             self.assertNotIn('<span data-lang="en">warm_recovery</span>', html)
 
     def test_write_dashboard_outputs_latest_inputs_show_as_of_date(self):
@@ -987,8 +1002,8 @@ class MarketRegimeReportTests(unittest.TestCase):
             write_dashboard_outputs(output_dir, self._daily(), self._summary())
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn('<text x="120" y="142" class="gauge-sub" data-lang="en">current regime</text>', html)
-            self.assertIn('<text x="120" y="142" class="gauge-sub" data-lang="zh">当前状态</text>', html)
+            self.assertIn('<text x="120" y="166" class="gauge-sub" data-lang="en">current regime</text>', html)
+            self.assertIn('<text x="120" y="166" class="gauge-sub" data-lang="zh">当前状态</text>', html)
 
     def test_write_dashboard_outputs_renders_config_metadata(self):
         with TemporaryDirectory() as tmp:

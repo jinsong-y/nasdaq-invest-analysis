@@ -49,6 +49,9 @@ ZH_TEXT = {
     "Confidence": "置信度",
     "Data date": "数据日期",
     "GitHub": "GitHub",
+    "Copy Markdown": "复制 Markdown",
+    "Copied": "已复制",
+    "Copy failed": "复制失败",
     "current regime": "当前状态",
     "Panic Low": "恐慌低位",
     "Stress Low": "压力偏低",
@@ -208,6 +211,41 @@ h1 {
   transform: translateY(-1px);
 }
 
+.copy-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(15, 118, 110, 0.26);
+  border-radius: 6px;
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.copy-button:hover {
+  border-color: var(--primary);
+  background: rgba(15, 118, 110, 0.12);
+  box-shadow: 0 0 0 3px var(--ring);
+  transform: translateY(-1px);
+}
+
+.copy-button[data-copy-state="copied"] {
+  border-color: rgba(15, 118, 110, 0.42);
+  background: rgba(15, 118, 110, 0.14);
+}
+
+.copy-button[data-copy-state="failed"] {
+  border-color: rgba(220, 38, 38, 0.34);
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}
+
 .language-toggle {
   display: inline-flex;
   gap: 3px;
@@ -341,7 +379,7 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   text-anchor: middle;
   fill: var(--foreground);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .gauge-sub {
@@ -789,6 +827,142 @@ function setScoreTrendRange(range) {
   }
 }
 
+function visibleText(element) {
+  if (!element) {
+    return "";
+  }
+  if (element.nodeType === Node.TEXT_NODE) {
+    return element.textContent || "";
+  }
+  if (element.nodeType !== Node.ELEMENT_NODE) {
+    return "";
+  }
+  const style = window.getComputedStyle(element);
+  if (style.display === "none" || style.visibility === "hidden") {
+    return "";
+  }
+  return Array.from(element.childNodes).map(visibleText).join(" ");
+}
+
+function normalizeMarkdownText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function escapeMarkdownCell(value) {
+  return normalizeMarkdownText(value).replace(/\|/g, "\\|");
+}
+
+function tableToMarkdown(table) {
+  const rows = Array.from(table.querySelectorAll("tr")).map(function (row) {
+    return Array.from(row.children).map(function (cell) {
+      return escapeMarkdownCell(visibleText(cell));
+    });
+  }).filter(function (cells) {
+    return cells.length > 0;
+  });
+  if (!rows.length) {
+    return "";
+  }
+  const header = rows[0];
+  const divider = header.map(function () {
+    return "---";
+  });
+  const body = rows.slice(1);
+  return [
+    "| " + header.join(" | ") + " |",
+    "| " + divider.join(" | ") + " |"
+  ].concat(body.map(function (cells) {
+    return "| " + cells.join(" | ") + " |";
+  })).join("\\n");
+}
+
+function panelToMarkdown(panel) {
+  const table = panel.querySelector("table");
+  if (table) {
+    return tableToMarkdown(table);
+  }
+  const listItems = Array.from(panel.querySelectorAll(":scope > ul > li, .pill-list > li, .input-grid > li"));
+  if (listItems.length) {
+    return listItems.map(function (item) {
+      return "- " + normalizeMarkdownText(visibleText(item));
+    }).join("\\n");
+  }
+  const detailBlocks = Array.from(panel.querySelectorAll("details"));
+  if (detailBlocks.length) {
+    return detailBlocks.map(function (detail) {
+      const summary = normalizeMarkdownText(visibleText(detail.querySelector("summary")));
+      const items = Array.from(detail.querySelectorAll("li")).map(function (item) {
+        return "- " + normalizeMarkdownText(visibleText(item));
+      }).join("\\n");
+      return "### " + summary + "\\n" + items;
+    }).join("\\n\\n");
+  }
+  return normalizeMarkdownText(visibleText(panel));
+}
+
+function buildDashboardMarkdown() {
+  const lines = [];
+  const title = normalizeMarkdownText(visibleText(document.querySelector("h1")));
+  if (title) {
+    lines.push("# " + title);
+  }
+  const subtitle = normalizeMarkdownText(visibleText(document.querySelector(".subtitle")));
+  if (subtitle) {
+    lines.push("", subtitle);
+  }
+  lines.push("", "Source: " + window.location.href);
+  lines.push("Copied at: " + new Date().toISOString());
+
+  const metrics = Array.from(document.querySelectorAll(".summary .metric")).map(function (metric) {
+    return [
+      escapeMarkdownCell(visibleText(metric.querySelector(".label"))),
+      escapeMarkdownCell(visibleText(metric.querySelector(".value")))
+    ];
+  }).filter(function (row) {
+    return row[0] || row[1];
+  });
+  if (metrics.length) {
+    lines.push("", "## Snapshot", "", "| Metric | Value |", "| --- | --- |");
+    for (const row of metrics) {
+      lines.push("| " + row[0] + " | " + row[1] + " |");
+    }
+  }
+
+  for (const heading of document.querySelectorAll("main > h2")) {
+    const title = normalizeMarkdownText(visibleText(heading));
+    const panel = heading.nextElementSibling;
+    if (!title || !panel || !panel.classList.contains("panel")) {
+      continue;
+    }
+    const body = panelToMarkdown(panel);
+    lines.push("", "## " + title);
+    if (body) {
+      lines.push("", body);
+    }
+  }
+  return lines.join("\\n").replace(/\\n{3,}/g, "\\n\\n").trim() + "\\n";
+}
+
+async function copyDashboardMarkdown() {
+  const button = document.querySelector("[data-copy-markdown]");
+  const markdown = buildDashboardMarkdown();
+  try {
+    await navigator.clipboard.writeText(markdown);
+    button.dataset.copyState = "copied";
+    button.querySelector('[data-lang="en"]').textContent = "Copied";
+    button.querySelector('[data-lang="zh"]').textContent = "已复制";
+  } catch (error) {
+    button.dataset.copyState = "failed";
+    button.querySelector('[data-lang="en"]').textContent = "Copy failed";
+    button.querySelector('[data-lang="zh"]').textContent = "复制失败";
+  }
+  window.setTimeout(function () {
+    button.dataset.copyState = "";
+    button.querySelector('[data-lang="en"]').textContent = "Copy Markdown";
+    button.querySelector('[data-lang="zh"]').textContent = "复制 Markdown";
+  }, 1800);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   setLanguage("en");
   setScoreTrendRange("week");
@@ -803,6 +977,10 @@ document.addEventListener("DOMContentLoaded", function () {
     button.addEventListener("click", function () {
       setScoreTrendRange(button.dataset.scoreRange);
     });
+  }
+  const copyButton = document.querySelector("[data-copy-markdown]");
+  if (copyButton) {
+    copyButton.addEventListener("click", copyDashboardMarkdown);
   }
 });
 </script>
@@ -845,6 +1023,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             f'<p class="subtitle">{_localized("Finance-tech market monitor")}</p>',
             "</div>",
             '<div class="top-actions">',
+            _copy_markdown_button(),
             _github_link(),
             _language_toggle(),
             "</div>",
@@ -906,7 +1085,7 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
     active_label_zh = escape(ZH_TEXT.get(active[1], active[1]))
     return (
         '<div class="gauge-grid">'
-        '<svg class="regime-gauge" viewBox="0 0 240 145" role="img" '
+        '<svg class="regime-gauge" viewBox="0 0 240 172" role="img" '
         'aria-labelledby="gauge-title gauge-desc">'
         '<title id="gauge-title">Market regime gauge</title>'
         f'<desc id="gauge-desc">Current market regime is {active_label} / {active_label_zh}.</desc>'
@@ -916,8 +1095,8 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
         f'<line x1="120" y1="116" x2="{needle_x:.2f}" y2="{needle_y:.2f}" '
         'stroke="#18202a" stroke-width="4" stroke-linecap="round"/>'
         '<circle cx="120" cy="116" r="7" fill="#18202a"/>'
-        f'{_localized_svg_text(active[1], x=120, y=132, class_name="gauge-label")}'
-        f'{_localized_svg_text("current regime", x=120, y=142, class_name="gauge-sub")}'
+        f'{_localized_svg_text(active[1], x=120, y=154, class_name="gauge-label")}'
+        f'{_localized_svg_text("current regime", x=120, y=166, class_name="gauge-sub")}'
         "</svg>"
         f'<ul class="legend-grid">{legend}</ul>'
         "</div>"
@@ -1447,6 +1626,14 @@ def _language_toggle() -> str:
         '<button type="button" data-language="en" aria-pressed="true">English</button>'
         '<button type="button" data-language="zh" aria-pressed="false">中文</button>'
         "</div>"
+    )
+
+
+def _copy_markdown_button() -> str:
+    return (
+        '<button type="button" class="copy-button" data-copy-markdown data-copy-state="">'
+        f'{_localized("Copy Markdown")}'
+        "</button>"
     )
 
 
