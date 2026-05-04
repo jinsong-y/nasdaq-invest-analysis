@@ -447,6 +447,44 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   font-weight: 800;
 }
 
+.input-value-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.input-value-row .input-value {
+  margin-top: 0;
+}
+
+.input-trend {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.trend-up {
+  background: rgba(15, 118, 110, 0.11);
+  color: #0f766e;
+}
+
+.trend-down {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+
+.trend-flat {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--muted-foreground);
+}
+
 .methodology {
   display: grid;
   gap: 12px;
@@ -664,7 +702,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             _section("How This Dashboard Works", _methodology_html()),
             _section("Drivers", _list(summary.get("drivers", []))),
             _section("Risks", _list(summary.get("risks", []))),
-            _section("Latest Inputs", _latest_inputs_html(summary)),
+            _section("Latest Inputs", _latest_inputs_html(summary, daily)),
             _section("Recent Daily Regimes", _table(rows)),
             "</main>",
             LANGUAGE_SCRIPT,
@@ -788,11 +826,12 @@ def _summary_paragraph(summary: dict[str, Any]) -> str:
     return f"<p>{_localized(_format_value(summary.get('summary', '')))}</p>"
 
 
-def _latest_inputs_html(summary: dict[str, Any]) -> str:
+def _latest_inputs_html(summary: dict[str, Any], daily: pd.DataFrame) -> str:
     as_of = _format_value(summary.get("as_of_date", ""))
+    previous_values = _previous_input_values(daily, as_of)
     return (
         f'<p class="panel-kicker">{_localized("Data date")}: {escape(as_of)}</p>'
-        f'{_input_grid(summary.get("inputs", {}))}'
+        f'{_input_grid(summary.get("inputs", {}), previous_values)}'
     )
 
 
@@ -925,17 +964,68 @@ def _key_value_list(values: Any) -> str:
     return f"<ul>{items}</ul>"
 
 
-def _input_grid(values: Any) -> str:
+def _input_grid(values: Any, previous_values: dict[str, Any] | None = None) -> str:
     if not isinstance(values, dict) or not values:
         return "<p>None</p>"
+    previous_values = previous_values or {}
     items = "".join(
         '<li>'
         f'<span class="input-key">{escape(str(key))}</span>'
+        '<span class="input-value-row">'
         f'<span class="input-value">{escape(_format_value(value))}</span>'
+        f'{_input_trend_html(value, previous_values.get(str(key)))}'
+        "</span>"
         "</li>"
         for key, value in values.items()
     )
     return f'<ul class="input-grid">{items}</ul>'
+
+
+def _previous_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
+    if "date" not in daily.columns:
+        return {}
+    target = pd.to_datetime(as_of, errors="coerce")
+    if pd.isna(target):
+        return {}
+    rows = daily.copy()
+    rows["_date"] = pd.to_datetime(rows["date"], errors="coerce")
+    previous = rows[rows["_date"] < target].sort_values("_date", ascending=False)
+    if previous.empty:
+        return {}
+    return previous.iloc[0].drop(labels=["_date"]).to_dict()
+
+
+def _input_trend_html(current: Any, previous: Any) -> str:
+    trend = _input_trend(current, previous)
+    if trend is None:
+        return ""
+    labels = {
+        "up": ("↑", "Up from prior market day"),
+        "down": ("↓", "Down from prior market day"),
+        "flat": ("→", "Flat from prior market day"),
+    }
+    arrow, label = labels[trend]
+    return (
+        f'<span class="input-trend trend-{trend}" aria-label="{label}" '
+        f'title="{label}">{arrow}</span>'
+    )
+
+
+def _input_trend(current: Any, previous: Any) -> str | None:
+    try:
+        current_value = float(current)
+        previous_value = float(previous)
+    except (TypeError, ValueError):
+        return None
+    if pd.isna(current_value) or pd.isna(previous_value):
+        return None
+    current_rounded = round(current_value, 2)
+    previous_rounded = round(previous_value, 2)
+    if math.isclose(current_rounded, previous_rounded, abs_tol=0.0):
+        return "flat"
+    if current_rounded > previous_rounded:
+        return "up"
+    return "down"
 
 
 def _table(frame: pd.DataFrame) -> str:

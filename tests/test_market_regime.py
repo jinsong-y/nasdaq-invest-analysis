@@ -812,6 +812,42 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("数据日期", html)
             self.assertIn("2026-04-30", html)
 
+    def test_write_dashboard_outputs_latest_inputs_show_prior_day_trend(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            daily = pd.concat(
+                [
+                    self._daily().assign(
+                        date="2026-04-29",
+                        ndx=99.0,
+                        vix=19.0,
+                        cnn_fear_greed=50.0,
+                    ),
+                    self._daily().assign(
+                        date="2026-04-30",
+                        ndx=100.0,
+                        vix=18.0,
+                        cnn_fear_greed=50.0,
+                    ),
+                ],
+                ignore_index=True,
+            )
+            summary = self._summary()
+            summary["inputs"] = {"ndx": 100.0, "vix": 18.0, "cnn_fear_greed": 50.0}
+
+            write_dashboard_outputs(output_dir, daily, summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="input-trend trend-up"', html)
+            self.assertIn('aria-label="Up from prior market day"', html)
+            self.assertIn(">↑</span>", html)
+            self.assertIn('class="input-trend trend-down"', html)
+            self.assertIn('aria-label="Down from prior market day"', html)
+            self.assertIn(">↓</span>", html)
+            self.assertIn('class="input-trend trend-flat"', html)
+            self.assertIn('aria-label="Flat from prior market day"', html)
+            self.assertIn(">→</span>", html)
+
     def test_write_dashboard_outputs_summary_shows_current_time_container(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
