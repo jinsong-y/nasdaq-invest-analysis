@@ -746,6 +746,37 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("市场状态仪表盘", html)
             self.assertIn("市场状态指针", html)
 
+    def test_write_dashboard_outputs_renders_bilingual_methodology(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn("How This Dashboard Works", html)
+            self.assertIn("仪表说明", html)
+            for text in [
+                "NDX price and 180-day SMA",
+                "VIX / VXN volatility",
+                "CNN Fear &amp; Greed",
+                "NDXE / NDX breadth",
+                "SOX / NDX semiconductor leadership",
+                "Robustness check: 9 of 9 known stress or top-risk dates passed",
+                "Threshold grid score improved from 113.72 to 116.59",
+                "This is a regime and DCA pacing reference, not a return forecast.",
+            ]:
+                self.assertIn(text, html)
+            for text in [
+                "纳指价格与 180 日均线",
+                "VIX / VXN 波动率",
+                "CNN 恐惧贪婪指数",
+                "NDXE / NDX 市场广度",
+                "SOX / NDX 半导体主线强弱",
+                "历史校验：9 个已知压力或顶部风险日期全部通过",
+                "阈值网格评分从 113.72 提升到 116.59",
+                "这是市场状态与定投节奏参考，不是收益预测。",
+            ]:
+                self.assertIn(text, html)
+
     def test_write_dashboard_outputs_renders_config_metadata(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)

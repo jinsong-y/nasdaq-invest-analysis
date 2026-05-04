@@ -29,6 +29,7 @@ ZH_TEXT = {
     "Market Regime Dashboard": "市场状态仪表盘",
     "Market State Gauge": "市场状态指针",
     "Summary": "摘要",
+    "How This Dashboard Works": "仪表说明",
     "Drivers": "主要驱动",
     "Risks": "风险",
     "Latest Inputs": "最新输入",
@@ -254,6 +255,41 @@ h2 {
   padding: 16px;
 }
 
+.methodology {
+  display: grid;
+  gap: 16px;
+}
+
+.methodology-intro,
+.methodology-note {
+  margin: 0;
+  color: #3b4754;
+  line-height: 1.55;
+}
+
+.methodology-group h3 {
+  margin: 0 0 8px;
+  color: #18202a;
+  font-size: 14px;
+}
+
+.methodology-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.methodology-list li {
+  list-style: none;
+  color: #3b4754;
+  line-height: 1.45;
+}
+
+.methodology-list strong {
+  color: #18202a;
+}
+
 ul {
   margin: 8px 0 0;
   padding-left: 20px;
@@ -371,6 +407,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             _config_metadata_html(summary),
             _section("Market State Gauge", _regime_gauge(summary)),
             _section("Summary", _summary_paragraph(summary)),
+            _section("How This Dashboard Works", _methodology_html()),
             _section("Drivers", _list(summary.get("drivers", []))),
             _section("Risks", _list(summary.get("risks", []))),
             _section("Latest Inputs", _key_value_list(summary.get("inputs", {}))),
@@ -497,6 +534,110 @@ def _summary_paragraph(summary: dict[str, Any]) -> str:
     return f"<p>{_localized(_format_value(summary.get('summary', '')))}</p>"
 
 
+def _methodology_html() -> str:
+    inputs = [
+        (
+            "NDX price and 180-day SMA",
+            "Shows trend direction and how far price is above or below its long-term baseline.",
+            "纳指价格与 180 日均线",
+            "判断趋势方向，以及价格相对长期基准的偏离程度。",
+        ),
+        (
+            "VIX / VXN volatility",
+            "Measures market stress; high volatility raises low-zone or risk signals depending on price context.",
+            "VIX / VXN 波动率",
+            "衡量市场压力；高波动会结合价格位置影响低位或风险判断。",
+        ),
+        (
+            "CNN Fear & Greed",
+            "Tracks sentiment and short-term emotional temperature.",
+            "CNN 恐惧贪婪指数",
+            "衡量市场情绪和短期情绪温度。",
+        ),
+        (
+            "NDXE / NDX breadth",
+            "Compares equal-weighted Nasdaq 100 with cap-weighted Nasdaq 100 to see whether strength is broad.",
+            "NDXE / NDX 市场广度",
+            "比较等权纳指与市值加权纳指，观察上涨是否足够广泛。",
+        ),
+        (
+            "SOX / NDX semiconductor leadership",
+            "Checks whether the semiconductor core of the tech cycle is confirming or weakening.",
+            "SOX / NDX 半导体主线强弱",
+            "观察半导体这个科技周期核心主线是在确认还是走弱。",
+        ),
+    ]
+    scores = [
+        (
+            "Scores",
+            "The model combines temperature, low-zone, overheat, trend, recovery, and confidence scores.",
+            "评分",
+            "模型合成温度、低位、过热、趋势、修复和置信度评分。",
+        ),
+        (
+            "Regime",
+            "Those scores map to regimes such as panic low, stress low, recovery, normal, warm, overheated, and top risk.",
+            "状态",
+            "这些评分会映射为恐慌低位、压力偏低、修复、正常、偏热、过热和顶部风险等状态。",
+        ),
+        (
+            "Action",
+            "The action is a DCA pacing reference: add, keep normal, reduce, or pause new buying.",
+            "动作",
+            "动作是定投节奏参考：加仓、正常定投、降速或暂停新买入。",
+        ),
+    ]
+    validation = [
+        (
+            "Robustness check: 9 of 9 known stress or top-risk dates passed.",
+            "历史校验：9 个已知压力或顶部风险日期全部通过。",
+        ),
+        (
+            "Threshold grid score improved from 113.72 to 116.59 after robustness tuning.",
+            "阈值网格评分从 113.72 提升到 116.59。",
+        ),
+        (
+            "Walk-forward windows were checked across 2011-2015, 2016-2020, 2021-2026, and multiple stress periods.",
+            "已在 2011-2015、2016-2020、2021-2026 以及多个压力时期做 walk-forward 校验。",
+        ),
+    ]
+    return (
+        '<div class="methodology">'
+        f'<p class="methodology-intro">{_localized_pair("This dashboard is a Nasdaq 100 market-regime classifier. It is built to explain market condition and DCA pacing, not to forecast returns.", "这个仪表盘是纳指 100 市场状态分类器，用来解释市场环境和定投节奏，不是收益预测。")}</p>'
+        f'{_methodology_group("Inputs", "指标", inputs)}'
+        f'{_methodology_group("Scoring and output", "评分与输出", scores)}'
+        f'{_methodology_validation(validation)}'
+        f'<p class="methodology-note">{_localized_pair("This is a regime and DCA pacing reference, not a return forecast.", "这是市场状态与定投节奏参考，不是收益预测。")}</p>'
+        "</div>"
+    )
+
+
+def _methodology_group(title_en: str, title_zh: str, rows: list[tuple[str, str, str, str]]) -> str:
+    items = "".join(
+        "<li>"
+        f"<strong>{_localized_pair(label_en, label_zh)}</strong>: "
+        f"{_localized_pair(description_en, description_zh)}"
+        "</li>"
+        for label_en, description_en, label_zh, description_zh in rows
+    )
+    return (
+        '<div class="methodology-group">'
+        f"<h3>{_localized_pair(title_en, title_zh)}</h3>"
+        f'<ul class="methodology-list">{items}</ul>'
+        "</div>"
+    )
+
+
+def _methodology_validation(rows: list[tuple[str, str]]) -> str:
+    items = "".join(f"<li>{_localized_pair(english, chinese)}</li>" for english, chinese in rows)
+    return (
+        '<div class="methodology-group">'
+        f"<h3>{_localized_pair('Backtest validation', '回测验证')}</h3>"
+        f'<ul class="methodology-list">{items}</ul>'
+        "</div>"
+    )
+
+
 def _list(values: Any) -> str:
     if not isinstance(values, list) or not values:
         return "<p>None</p>"
@@ -538,6 +679,10 @@ def _format_value(value: Any) -> str:
 
 def _localized(english: str) -> str:
     chinese = ZH_TEXT.get(english, english)
+    return f'<span data-lang="en">{escape(english)}</span><span data-lang="zh">{escape(chinese)}</span>'
+
+
+def _localized_pair(english: str, chinese: str) -> str:
     return f'<span data-lang="en">{escape(english)}</span><span data-lang="zh">{escape(chinese)}</span>'
 
 
