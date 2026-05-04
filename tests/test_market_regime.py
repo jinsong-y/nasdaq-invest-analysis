@@ -748,6 +748,32 @@ class MarketRegimeReportTests(unittest.TestCase):
                 "顶部风险观察",
             ]:
                 self.assertIn(label, html)
+            self.assertIn('stroke="#1d4ed8"', html)
+            self.assertIn('stroke="#dc2626"', html)
+            self.assertNotIn("Current.</span>", html)
+            self.assertNotIn("当前。</span>", html)
+
+    def test_write_dashboard_outputs_orders_dashboard_sections(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["config_metadata"] = {"config_source": "recommended robustness config"}
+            write_dashboard_outputs(output_dir, self._daily_trend(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            titles = [
+                "Market State Gauge",
+                "Composite Score Trend",
+                "Latest Inputs",
+                "Drivers",
+                "Risks",
+                'data-lang="en">Summary</span>',
+                "Config",
+                "Recent Daily Regimes",
+                "How This Dashboard Works",
+            ]
+            positions = [html.index(title) for title in titles]
+            self.assertEqual(sorted(positions), positions)
 
     def test_write_dashboard_outputs_renders_score_trend_below_gauge(self):
         with TemporaryDirectory() as tmp:
@@ -768,6 +794,33 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("2026-04-30", html)
             self.assertIn("66.00", html)
             self.assertIn("setScoreTrendRange", html)
+            self.assertIn("score-zone-panic", html)
+            self.assertIn("score-zone-overheated", html)
+
+    def test_write_dashboard_outputs_score_trend_ignores_zero_unavailable_rows(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            daily = pd.concat(
+                [
+                    self._daily().assign(
+                        date="2026-04-27",
+                        temperature_score=0.0,
+                        market_regime="unscorable",
+                        dashboard_action="unavailable",
+                    ),
+                    self._daily().assign(date="2026-04-28", temperature_score=55.0),
+                    self._daily().assign(date="2026-04-29", temperature_score=60.0),
+                    self._daily().assign(date="2026-04-30", temperature_score=65.0),
+                ],
+                ignore_index=True,
+            )
+            write_dashboard_outputs(output_dir, daily, self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            trend_html = html[html.index("Composite Score Trend") : html.index('data-lang="en">Summary</span>')]
+            self.assertNotIn("2026-04-27: 0.00", trend_html)
+            self.assertNotIn('cx="54.00" cy="222.00"', trend_html)
+            self.assertNotIn("M 54.00 222.00", trend_html)
 
     def test_write_dashboard_outputs_localizes_active_gauge_label(self):
         with TemporaryDirectory() as tmp:

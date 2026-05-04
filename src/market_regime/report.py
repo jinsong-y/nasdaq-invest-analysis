@@ -13,15 +13,15 @@ from .config import OUTPUT_COLUMNS
 
 
 REGIME_BANDS = [
-    ("panic_low", "Panic Low", 0, 12, "#7f1d1d", "Severe stress; prices and sentiment are deeply depressed."),
-    ("stress_low", "Stress Low", 12, 26, "#c2410c", "Below-trend market with elevated stress."),
-    ("recovery", "Recovery", 26, 42, "#d97706", "Repair signals improving after stress."),
-    ("normal", "Normal", 42, 58, "#15803d", "Balanced market; no major extreme dominates."),
-    ("warm_recovery", "Warm Recovery", 58, 68, "#84cc16", "Repair signals are strong, but conditions are already warm."),
-    ("warm", "Warm", 68, 78, "#65a30d", "Above-trend market with warmer conditions."),
+    ("panic_low", "Panic Low", 0, 12, "#1d4ed8", "Severe stress; prices and sentiment are deeply depressed."),
+    ("stress_low", "Stress Low", 12, 26, "#2563eb", "Below-trend market with elevated stress."),
+    ("recovery", "Recovery", 26, 42, "#38bdf8", "Repair signals improving after stress."),
+    ("normal", "Normal", 42, 58, "#14b8a6", "Balanced market; no major extreme dominates."),
+    ("warm_recovery", "Warm Recovery", 58, 68, "#facc15", "Repair signals are strong, but conditions are already warm."),
+    ("warm", "Warm", 68, 78, "#f97316", "Above-trend market with warmer conditions."),
     ("overheated", "Overheated", 78, 88, "#dc2626", "Multiple overheat signals are active."),
-    ("top_risk_watch", "Top Risk Watch", 88, 94, "#ea580c", "Top-risk evidence is elevated but below full risk."),
-    ("top_risk", "Top Risk", 94, 100, "#7c2d12", "Overheat plus structural deterioration risk."),
+    ("top_risk_watch", "Top Risk Watch", 88, 94, "#b91c1c", "Top-risk evidence is elevated but below full risk."),
+    ("top_risk", "Top Risk", 94, 100, "#7f1d1d", "Overheat plus structural deterioration risk."),
 ]
 
 REGIME_LABELS = {key: label for key, label, *_ in REGIME_BANDS}
@@ -418,6 +418,22 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   stroke-width: 1;
 }
 
+.score-zone-panic {
+  fill: rgba(29, 78, 216, 0.12);
+}
+
+.score-zone-recovery {
+  fill: rgba(20, 184, 166, 0.10);
+}
+
+.score-zone-warm {
+  fill: rgba(250, 204, 21, 0.12);
+}
+
+.score-zone-overheated {
+  fill: rgba(220, 38, 38, 0.11);
+}
+
 .score-trend-axis {
   stroke: #94a3b8;
   stroke-width: 1.4;
@@ -432,7 +448,7 @@ body.lang-zh .metric-action .value [data-lang="en"] {
 }
 
 .score-trend-area {
-  fill: rgba(15, 118, 110, 0.09);
+  fill: rgba(15, 118, 110, 0.07);
 }
 
 .score-trend-point {
@@ -834,15 +850,15 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             "</div>",
             "</div>",
             _summary_grid(summary),
-            _config_metadata_html(summary),
             _section("Market State Gauge", _regime_gauge(summary)),
             _section("Composite Score Trend", _score_trend_html(daily, summary)),
-            _section("Summary", _summary_paragraph(summary)),
-            _section("How This Dashboard Works", _methodology_html()),
+            _section("Latest Inputs", _latest_inputs_html(summary, daily)),
             _section("Drivers", _list(summary.get("drivers", []))),
             _section("Risks", _list(summary.get("risks", []))),
-            _section("Latest Inputs", _latest_inputs_html(summary, daily)),
+            _section("Summary", _summary_paragraph(summary)),
+            _config_metadata_html(summary),
             _section("Recent Daily Regimes", _table(rows)),
+            _section("How This Dashboard Works", _methodology_html()),
             "</main>",
             LANGUAGE_SCRIPT,
             "</body>",
@@ -952,10 +968,17 @@ def _score_trend_panel(daily: pd.DataFrame, summary: dict[str, Any], key: str, d
 
 
 def _score_trend_rows(daily: pd.DataFrame, summary: dict[str, Any], days: int) -> pd.DataFrame:
-    rows = daily[["date", "temperature_score"]].copy()
+    columns = ["date", "temperature_score"]
+    optional_columns = [column for column in ["market_regime", "dashboard_action"] if column in daily.columns]
+    rows = daily[columns + optional_columns].copy()
     rows["_date"] = pd.to_datetime(rows["date"], errors="coerce")
     rows["_score"] = pd.to_numeric(rows["temperature_score"], errors="coerce")
     rows = rows.dropna(subset=["_date", "_score"]).sort_values("_date")
+    rows = rows[(rows["_score"] > 0.0) & (rows["_score"] <= 100.0)]
+    if "market_regime" in rows.columns:
+        rows = rows[rows["market_regime"].astype(str) != "unscorable"]
+    if "dashboard_action" in rows.columns:
+        rows = rows[rows["dashboard_action"].astype(str) != "unavailable"]
     if rows.empty:
         return rows
 
@@ -1002,6 +1025,15 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
             ("0", top + plot_height),
         ]
     )
+    zones = "".join(
+        _score_zone_rect(class_name, start, end, left, width - right, top, plot_height)
+        for class_name, start, end in [
+            ("score-zone-panic", 0.0, 35.0),
+            ("score-zone-recovery", 35.0, 65.0),
+            ("score-zone-warm", 65.0, 78.0),
+            ("score-zone-overheated", 78.0, 100.0),
+        ]
+    )
     first = points[0]
     last = points[-1]
     x_labels = (
@@ -1019,6 +1051,7 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
         f'<svg class="score-trend-chart" viewBox="0 0 {width:.0f} {height:.0f}" '
         f'role="img" aria-label="{title}">'
         f"<title>{title}</title>"
+        f"{zones}"
         f"{y_grid}"
         f'<line class="score-trend-axis" x1="{left:.0f}" y1="{top + plot_height:.0f}" '
         f'x2="{width - right:.0f}" y2="{top + plot_height:.0f}"/>'
@@ -1026,6 +1059,23 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
         f'<path class="score-trend-line" d="{path}"/>'
         f"{circles}{value_label}{x_labels}"
         "</svg>"
+    )
+
+
+def _score_zone_rect(
+    class_name: str,
+    start_score: float,
+    end_score: float,
+    left: float,
+    right: float,
+    top: float,
+    plot_height: float,
+) -> str:
+    y_top = top + plot_height * (100.0 - end_score) / 100.0
+    y_bottom = top + plot_height * (100.0 - start_score) / 100.0
+    return (
+        f'<rect class="{class_name}" x="{left:.0f}" y="{y_top:.2f}" '
+        f'width="{right - left:.0f}" height="{y_bottom - y_top:.2f}"/>'
     )
 
 
@@ -1080,13 +1130,12 @@ def _gauge_segment(band: tuple[str, str, int, int, str, str]) -> str:
 
 
 def _legend_item(band: tuple[str, str, int, int, str, str], current_regime: str) -> str:
-    key, label, start, end, color, description = band
-    current = _localized("Current.") if key == current_regime else ""
+    _, label, start, end, color, description = band
     return (
         '<li class="legend-item">'
         f'<span class="swatch" style="background:{color}"></span>'
         f"<strong>{_localized(label)}</strong>"
-        f"<span>{start}-{end}: {_localized(description)}{current}</span>"
+        f"<span>{start}-{end}: {_localized(description)}</span>"
         "</li>"
     )
 
