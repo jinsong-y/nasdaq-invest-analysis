@@ -12,6 +12,9 @@
 | Version A 总览 HTML | `reports/version_a/index.html` |
 | Version B 基金 HTML | `reports/version_b_funds/index.html` |
 | Version C PE 回测 HTML | `reports/version_c_pe/index.html` |
+| Version C PE 5000 买入 HTML | `reports/version_c_pe_5000/index.html` |
+| 市场状态 Dashboard | `reports/market_regime/index.html` |
+| 市场状态鲁棒性报告 | `reports/market_regime_robustness/index.html` |
 | 数据清单 | `docs/DATA_INVENTORY.md` |
 | 项目结构说明 | `docs/PROJECT_STRUCTURE.md` |
 
@@ -22,6 +25,7 @@
 - 当前信号体系更适合作为风控和节奏参考，不宜直接替代机械定投。
 - Version C 已加入 PE 百分位回测入口；按 `2000-01-03` 到 `2026-05-01` 口径，PE 策略终值约 `1014.23` 万，机械定投约 `1337.54` 万，少约 `323.31` 万。
 - 当前这套 PE 百分位规则同样没有跑赢机械定投，现阶段更适合作为估值风控参考，而不是直接替代持续定投。
+- 市场状态 Dashboard 已加入中英双语仪表盘和鲁棒性阈值测试；推荐配置截至 `2026-04-30` 判断为 `warm_recovery`，动作是 `normal_dca`。
 
 ## 常用命令
 
@@ -33,6 +37,8 @@
 .venv/bin/python scripts/run_version_b_funds.py
 .venv/bin/python scripts/fetch_nasdaq100_pe.py
 .venv/bin/python scripts/run_version_c_pe_backtest.py
+.venv/bin/python scripts/run_market_regime_dashboard.py --target-date 2026-04-30
+.venv/bin/python scripts/run_market_regime_robustness.py --target-date 2026-04-30
 ```
 
 如只想查看现有结果，直接打开 `reports/` 下的 HTML 或 Markdown 文件即可。

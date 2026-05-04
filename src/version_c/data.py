@@ -36,6 +36,24 @@ def load_pe_data(path: str | Path) -> pd.DataFrame:
     return df[["date", "pe_ratio"]]
 
 
+def filter_date_range(
+    df: pd.DataFrame,
+    *,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> pd.DataFrame:
+    if df.empty:
+        raise ValueError("cannot filter an empty frame")
+    work = df.copy()
+    if start_date is not None:
+        work = work[work.index >= pd.Timestamp(start_date)]
+    if end_date is not None:
+        work = work[work.index <= pd.Timestamp(end_date)]
+    if work.empty:
+        raise ValueError("date filter removed all rows")
+    return work
+
+
 def _expanding_percentile(series: pd.Series) -> pd.Series:
     history: list[float] = []
     out: list[float] = []

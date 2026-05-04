@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Version C PE Backtest</title><style>
+:root{--ink:#181713;--muted:#6f6a5f;--paper:#f8f4ea;--panel:#fffdf7;--line:#ddd5c4;--good:#1f6b4c;--bad:#9d2f22}
+*{box-sizing:border-box} body{font-family:ui-serif,Georgia,Cambria,serif;margin:0;background:var(--paper);color:var(--ink)}
+main{max-width:1080px;margin:0 auto;padding:32px 20px 64px} h1,h2{margin:0 0 12px} p{line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}
+.metric{background:var(--panel);border:1px solid var(--line);padding:16px}.label{font-size:12px;color:var(--muted);text-transform:uppercase}.value{font-size:28px;font-weight:700;margin-top:8px}
+table{width:100%;border-collapse:collapse;margin-top:20px;background:var(--panel)} th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left} th{font-size:12px;color:var(--muted);text-transform:uppercase}
+</style></head><body><main>
+    <h1>Version C: PE Percentile Backtest</h1>
+    <p>规则口径：每天现金流固定 200；PE 历史值使用截至当日的扩展分位数；低于 40% 买入，低于 20% 双倍买入，高于 40% 停买，高于 80% 开始卖出。</p>
+    <p class="bad"><strong>机械定投仍然更强</strong>。终值差额 -104,463.95，ROI 差额 -32.83%。</p>
+    <div class="grid">
+      <div class="metric"><div class="label">PE 策略终值</div><div class="value">494,924.68</div></div>
+      <div class="metric"><div class="label">机械定投终值</div><div class="value">599,388.63</div></div>
+      <div class="metric"><div class="label">PE 策略 ROI</div><div class="value">55.54%</div></div>
+      <div class="metric"><div class="label">机械定投 ROI</div><div class="value">88.37%</div></div>
+    </div>
+    <h2>最近 12 个交易日</h2>
+    <table>
+      <thead><tr><th>Date</th><th>PE</th><th>PE Pctile</th><th>Strategy</th><th>Baseline</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td>2026-04-16</td><td>31.96</td><td>73.15%</td><td>480066.54</td><td>567452.85</td><td>pause</td></tr><tr><td>2026-04-17</td><td>31.96</td><td>73.15%</td><td>483385.95</td><td>574967.27</td><td>pause</td></tr><tr><td>2026-04-20</td><td>31.96</td><td>73.15%</td><td>482831.53</td><td>573397.69</td><td>pause</td></tr><tr><td>2026-04-21</td><td>31.96</td><td>73.15%</td><td>482012.62</td><td>571206.87</td><td>pause</td></tr><tr><td>2026-04-22</td><td>31.96</td><td>73.15%</td><td>486419.87</td><td>581282.39</td><td>pause</td></tr><tr><td>2026-04-23</td><td>31.96</td><td>73.15%</td><td>485198.61</td><td>578145.18</td><td>pause</td></tr><tr><td>2026-04-24</td><td>31.96</td><td>73.15%</td><td>490187.14</td><td>589592.87</td><td>pause</td></tr><tr><td>2026-04-27</td><td>31.96</td><td>73.15%</td><td>490405.61</td><td>589836.27</td><td>pause</td></tr><tr><td>2026-04-28</td><td>31.96</td><td>73.15%</td><td>488062.97</td><td>584059.86</td><td>pause</td></tr><tr><td>2026-04-29</td><td>31.96</td><td>73.15%</td><td>489714.83</td><td>587673.59</td><td>pause</td></tr><tr><td>2026-04-30</td><td>31.96</td><td>73.15%</td><td>492351.42</td><td>593604.64</td><td>pause</td></tr><tr><td>2026-05-01</td><td>32.27</td><td>74.13%</td><td>494924.68</td><td>599388.63</td><td>pause</td></tr>
+      </tbody>
+    </table>
+    </main></body></html>

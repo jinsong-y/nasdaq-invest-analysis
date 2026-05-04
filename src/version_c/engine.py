@@ -28,6 +28,7 @@ def run_pe_strategy(
     run_id: str,
     price_column: str = "ndx",
     daily_budget: float = DAILY_BUDGET,
+    buy_budget: float = DAILY_BUDGET,
     double_buy_budget: float = DOUBLE_BUY_BUDGET,
     buy_threshold: float = BUY_THRESHOLD,
     double_buy_threshold: float = DOUBLE_BUY_THRESHOLD,
@@ -95,7 +96,7 @@ def run_pe_strategy(
             cash -= invested
             state = "double_buy"
         elif pe_pctile < buy_threshold:
-            invested = min(cash, daily_budget)
+            invested = min(cash, buy_budget)
             shares += invested / price if price > 0 else 0.0
             cash -= invested
             state = "normal_buy"

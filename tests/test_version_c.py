@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.fetch_nasdaq100_pe import extract_pe_series
-from src.version_c.data import merge_market_with_pe
+from src.version_c.data import filter_date_range, merge_market_with_pe
 from src.version_c.engine import run_mechanical_baseline, run_pe_strategy
 
 
@@ -44,6 +44,14 @@ class VersionCDataTests(unittest.TestCase):
         self.assertEqual([25.0, 25.0, 30.0, 27.0], merged["pe_ratio"].round(2).tolist())
         self.assertEqual([1.0, 1.0, 1.0, 2.0 / 3.0], merged["pe_pctile"].tolist())
 
+    def test_filter_date_range_keeps_requested_window(self):
+        df = pd.DataFrame(
+            {"ndx": [100.0, 101.0, 102.0]},
+            index=pd.to_datetime(["2019-12-31", "2020-01-02", "2026-05-01"]),
+        )
+        out = filter_date_range(df, start_date="2020-01-02", end_date="2026-05-01")
+        self.assertEqual(["2020-01-02", "2026-05-01"], out.index.strftime("%Y-%m-%d").tolist())
+
 
 class VersionCEngineTests(unittest.TestCase):
     def test_run_pe_strategy_applies_pause_double_buy_and_staged_sells(self):
@@ -75,6 +83,22 @@ class VersionCEngineTests(unittest.TestCase):
         self.assertEqual([200.0, 200.0, 200.0], result.daily["invested"].tolist())
         self.assertEqual(600.0, float(result.daily["invested"].sum()))
         self.assertEqual(6.0, float(result.daily["shares"].iloc[-1]))
+
+    def test_run_pe_strategy_can_deploy_up_to_5000_from_accumulated_cash(self):
+        index = pd.date_range("2024-01-01", periods=30, freq="B")
+        df = pd.DataFrame(
+            {
+                "ndx": [100.0] * 30,
+                "pe_ratio": [40.0] * 25 + [15.0] * 5,
+                "pe_pctile": [0.50] * 25 + [0.10] * 5,
+            },
+            index=index,
+        )
+        result = run_pe_strategy(df, run_id="pe_5000", buy_budget=5000.0, double_buy_budget=5000.0)
+        daily = result.daily
+        self.assertEqual(5000.0, float(daily["invested"].iloc[25]))
+        self.assertEqual(5000.0, float(daily["cash"].iloc[24]))
+        self.assertEqual(200.0, float(daily["cash"].iloc[25]))
 
 
 if __name__ == "__main__":

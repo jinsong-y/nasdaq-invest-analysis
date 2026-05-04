@@ -45,6 +45,7 @@
 | `src/version_a/metrics.py` | ROI、回撤、成本等指标汇总 |
 | `src/version_a/report.py` | Version A/B HTML 报告生成 |
 | `src/version_c/` | PE 百分位策略回测核心代码 |
+| `src/market_regime/` | 市场状态 Dashboard、状态划分、HTML 报告生成 |
 
 ## 脚本目录
 
@@ -56,6 +57,9 @@
 | `scripts/run_version_b_funds.py` | 运行 Version B 基金净值测算 |
 | `scripts/fetch_nasdaq100_pe.py` | 抓取纳指 PE 月度历史 |
 | `scripts/run_version_c_pe_backtest.py` | 运行 Version C PE 百分位回测 |
+| `scripts/run_market_regime_dashboard.py` | 生成市场状态双语 Dashboard |
+| `scripts/evaluate_market_regime.py` | 评估市场状态历史表现和已知日期 |
+| `scripts/run_market_regime_robustness.py` | 阈值网格、极端年份、walk-forward 鲁棒性测试 |
 
 ## 报告目录
 
@@ -64,6 +68,11 @@
 | `reports/version_a/` | 正式 Version A 参数网络结果 |
 | `reports/version_b_funds/` | Version B 真实基金净值测算 |
 | `reports/version_c_pe/` | Version C PE 百分位回测结果 |
+| `reports/version_c_pe_5000/` | Version C 触发日 5000 买入预算全样本结果 |
+| `reports/version_c_pe_5000_2020_2026/` | Version C 触发日 5000 买入预算 2020-2026 结果 |
+| `reports/market_regime/` | 市场状态双语 Dashboard、latest JSON、daily regimes |
+| `reports/market_regime_evaluation/` | 市场状态历史评估、forward returns、已知日期复盘 |
+| `reports/market_regime_robustness/` | 推荐阈值配置、grid results、walk-forward、误判复盘 |
 | `reports/project_summary/` | 面向阅读的项目总结和总结图 |
 | `reports/version_a_smoke/` | 小样本冒烟测试产物 |
 | `reports/version_a_benchmark/` | 基准/历史中间产物 |
@@ -73,5 +82,7 @@
 1. `reports/project_summary/PROJECT_SUMMARY.md`
 2. `reports/version_a/index.html`
 3. `reports/version_b_funds/index.html`
-4. `docs/strategy/NASDQ_STRATEGY_V2.md`
-5. `docs/PROJECT_STRUCTURE.md`
+4. `reports/market_regime/index.html`
+5. `reports/market_regime_robustness/index.html`
+6. `docs/strategy/NASDQ_STRATEGY_V2.md`
+7. `docs/PROJECT_STRUCTURE.md`

@@ -1,0 +1,28 @@
+{
+  "strategy": {
+    "run_id": "pe_percentile_strategy",
+    "days": 6623,
+    "total_contributed": 1324600.0,
+    "total_bought": 1157600.0,
+    "total_sold": 2655048.216002843,
+    "cash": 2822048.216002843,
+    "shares": 333.0531958283161,
+    "terminal_value": 12051072.171555981,
+    "roi": 8.097895343164714,
+    "max_drawdown": -0.48243765203945177
+  },
+  "baseline": {
+    "run_id": "mechanical_dca",
+    "days": 6623,
+    "total_contributed": 1324600.0,
+    "total_bought": 1324600.0,
+    "total_sold": 0.0,
+    "cash": 0.0,
+    "shares": 482.6857301765105,
+    "terminal_value": 13375395.35005397,
+    "roi": 9.0976863581866,
+    "max_drawdown": -0.4811637809499686
+  },
+  "terminal_value_diff": -1324323.1784979887,
+  "roi_diff": -0.999791015021886
+}
