@@ -24,9 +24,14 @@ REGIME_BANDS = [
     ("top_risk", "Top Risk", 94, 100, "#7c2d12", "Overheat plus structural deterioration risk."),
 ]
 
+REGIME_LABELS = {key: label for key, label, *_ in REGIME_BANDS}
+
+GITHUB_REPO_URL = "https://github.com/jinsong-y/nasdaq-invest-analysis"
+
 
 ZH_TEXT = {
     "Market Regime Dashboard": "市场状态仪表盘",
+    "Finance-tech market monitor": "金融科技市场监测",
     "Market State Gauge": "市场状态指针",
     "Summary": "摘要",
     "How This Dashboard Works": "仪表说明",
@@ -40,6 +45,9 @@ ZH_TEXT = {
     "Action": "动作",
     "Temperature": "温度",
     "Confidence": "置信度",
+    "Data date": "数据日期",
+    "GitHub": "GitHub",
+    "current regime": "当前状态",
     "Panic Low": "恐慌低位",
     "Stress Low": "压力偏低",
     "Recovery": "修复期",
@@ -90,18 +98,21 @@ ZH_TEXT = {
 CSS = """
 :root {
   color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f6f7f9;
-  color: #18202a;
+  font-family: "Aptos", "Helvetica Neue", Arial, sans-serif;
+  background: #f4f7fb;
+  color: #142033;
 }
 
 body {
   margin: 0;
-  padding: 32px;
+  padding: 40px 32px 56px;
+  background:
+    linear-gradient(180deg, rgba(226, 237, 247, 0.86) 0%, rgba(244, 247, 251, 0) 280px),
+    #f4f7fb;
 }
 
 main {
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 
@@ -111,14 +122,51 @@ h2 {
 }
 
 h1 {
-  font-size: 28px;
+  font-size: 30px;
+  letter-spacing: 0;
+  color: #102033;
 }
 
 .topbar {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.brand-block {
+  display: grid;
+  gap: 6px;
+}
+
+.subtitle {
+  margin: 0;
+  color: #5d6b7a;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid #c6d2df;
+  border-radius: 999px;
+  background: #102033;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .language-toggle {
@@ -127,7 +175,7 @@ h1 {
   padding: 4px;
   border: 1px solid #d8dee7;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .language-toggle button {
@@ -143,7 +191,7 @@ h1 {
 
 body.lang-en .language-toggle [data-language="en"],
 body.lang-zh .language-toggle [data-language="zh"] {
-  background: #18202a;
+  background: #102033;
   color: #ffffff;
 }
 
@@ -160,22 +208,24 @@ body.lang-zh [data-lang="zh"] {
 }
 
 h2 {
-  margin-top: 28px;
+  margin-top: 34px;
   font-size: 18px;
+  color: #102033;
 }
 
 .summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 20px;
+  gap: 14px;
+  margin-top: 0;
 }
 
 .metric {
-  border: 1px solid #d8dee7;
+  border: 1px solid #d5e0ea;
   border-radius: 8px;
-  background: #ffffff;
-  padding: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 17px;
+  box-shadow: 0 10px 28px rgba(20, 32, 51, 0.05);
 }
 
 .label {
@@ -188,12 +238,13 @@ h2 {
   margin-top: 8px;
   font-size: 22px;
   font-weight: 700;
+  color: #102033;
 }
 
 .gauge-grid {
   display: grid;
   grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 0.9fr);
-  gap: 16px;
+  gap: 22px;
   align-items: center;
 }
 
@@ -248,11 +299,19 @@ h2 {
 }
 
 .panel {
-  border: 1px solid #d8dee7;
+  border: 1px solid #d5e0ea;
   border-radius: 8px;
-  background: #ffffff;
-  margin-top: 12px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  margin-top: 14px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(20, 32, 51, 0.045);
+}
+
+.panel-kicker {
+  margin: 0 0 14px;
+  color: #5d6b7a;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .methodology {
@@ -305,13 +364,13 @@ table {
 th,
 td {
   border-bottom: 1px solid #e3e8ef;
-  padding: 10px;
+  padding: 12px 10px;
   text-align: left;
   white-space: nowrap;
 }
 
 th {
-  background: #eef2f6;
+  background: #edf4fa;
   color: #3b4754;
   font-size: 12px;
   text-transform: uppercase;
@@ -332,6 +391,10 @@ th {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
   }
 
   .gauge-grid {
@@ -386,7 +449,7 @@ def write_dashboard_outputs(output_dir: Path, daily: pd.DataFrame, summary: dict
 
 
 def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
-    rows = daily.tail(20)
+    rows = _recent_rows(daily)
     return "\n".join(
         [
             "<!doctype html>",
@@ -400,8 +463,14 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             '<body class="lang-en">',
             "<main>",
             '<div class="topbar">',
+            '<div class="brand-block">',
             f"<h1>{_localized('Market Regime Dashboard')}</h1>",
+            f'<p class="subtitle">{_localized("Finance-tech market monitor")}</p>',
+            "</div>",
+            '<div class="top-actions">',
+            _github_link(),
             _language_toggle(),
+            "</div>",
             "</div>",
             _summary_grid(summary),
             _config_metadata_html(summary),
@@ -410,7 +479,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             _section("How This Dashboard Works", _methodology_html()),
             _section("Drivers", _list(summary.get("drivers", []))),
             _section("Risks", _list(summary.get("risks", []))),
-            _section("Latest Inputs", _key_value_list(summary.get("inputs", {}))),
+            _section("Latest Inputs", _latest_inputs_html(summary)),
             _section("Recent Daily Regimes", _table(rows)),
             "</main>",
             LANGUAGE_SCRIPT,
@@ -423,7 +492,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
 def _summary_grid(summary: dict[str, Any]) -> str:
     metrics = [
         ("As of", summary.get("as_of_date", "")),
-        ("Regime", _translated_value(summary.get("market_regime", ""))),
+        ("Regime", _translated_regime_value(summary.get("market_regime", ""))),
         ("Action", _translated_value(summary.get("dashboard_action", ""))),
         ("Temperature", summary.get("temperature_score", "")),
         ("Confidence", summary.get("confidence_score", "")),
@@ -470,7 +539,7 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
         'stroke="#18202a" stroke-width="4" stroke-linecap="round"/>'
         '<circle cx="120" cy="116" r="7" fill="#18202a"/>'
         f'{_localized_svg_text(active[1], x=120, y=132, class_name="gauge-label")}'
-        '<text x="120" y="142" class="gauge-sub">current regime / 当前状态</text>'
+        f'{_localized_svg_text("current regime", x=120, y=142, class_name="gauge-sub")}'
         "</svg>"
         f'<ul class="legend-grid">{legend}</ul>'
         "</div>"
@@ -532,6 +601,14 @@ def _paragraph(value: Any) -> str:
 
 def _summary_paragraph(summary: dict[str, Any]) -> str:
     return f"<p>{_localized(_format_value(summary.get('summary', '')))}</p>"
+
+
+def _latest_inputs_html(summary: dict[str, Any]) -> str:
+    as_of = _format_value(summary.get("as_of_date", ""))
+    return (
+        f'<p class="panel-kicker">{_localized("Data date")}: {escape(as_of)}</p>'
+        f'{_key_value_list(summary.get("inputs", {}))}'
+    )
 
 
 def _methodology_html() -> str:
@@ -669,6 +746,15 @@ def _table(frame: pd.DataFrame) -> str:
     return f'<div class="table-wrap"><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>'
 
 
+def _recent_rows(daily: pd.DataFrame) -> pd.DataFrame:
+    rows = daily.tail(20).copy()
+    if "date" not in rows.columns:
+        return rows
+    rows["_sort_date"] = pd.to_datetime(rows["date"], errors="coerce")
+    rows = rows.sort_values("_sort_date", ascending=False, na_position="last")
+    return rows.drop(columns=["_sort_date"])
+
+
 def _format_value(value: Any) -> str:
     if pd.isna(value):
         return ""
@@ -699,6 +785,12 @@ def _translated_value(value: Any) -> tuple[str, str]:
     return text, ZH_TEXT.get(text, text)
 
 
+def _translated_regime_value(value: Any) -> tuple[str, str]:
+    code = _format_value(value)
+    english = REGIME_LABELS.get(code, code)
+    return english, ZH_TEXT.get(english, english)
+
+
 def _format_display_value(value: Any) -> str:
     if isinstance(value, tuple):
         english, chinese = value
@@ -712,4 +804,11 @@ def _language_toggle() -> str:
         '<button type="button" data-language="en" aria-pressed="true">English</button>'
         '<button type="button" data-language="zh" aria-pressed="false">中文</button>'
         "</div>"
+    )
+
+
+def _github_link() -> str:
+    return (
+        f'<a class="github-link" href="{GITHUB_REPO_URL}" target="_blank" '
+        f'rel="noopener noreferrer">{_localized("GitHub")}</a>'
     )

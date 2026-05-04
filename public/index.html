@@ -7,18 +7,21 @@
 <style>
 :root {
   color-scheme: light;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f6f7f9;
-  color: #18202a;
+  font-family: "Aptos", "Helvetica Neue", Arial, sans-serif;
+  background: #f4f7fb;
+  color: #142033;
 }
 
 body {
   margin: 0;
-  padding: 32px;
+  padding: 40px 32px 56px;
+  background:
+    linear-gradient(180deg, rgba(226, 237, 247, 0.86) 0%, rgba(244, 247, 251, 0) 280px),
+    #f4f7fb;
 }
 
 main {
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 
@@ -28,14 +31,51 @@ h2 {
 }
 
 h1 {
-  font-size: 28px;
+  font-size: 30px;
+  letter-spacing: 0;
+  color: #102033;
 }
 
 .topbar {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.brand-block {
+  display: grid;
+  gap: 6px;
+}
+
+.subtitle {
+  margin: 0;
+  color: #5d6b7a;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid #c6d2df;
+  border-radius: 999px;
+  background: #102033;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .language-toggle {
@@ -44,7 +84,7 @@ h1 {
   padding: 4px;
   border: 1px solid #d8dee7;
   border-radius: 999px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .language-toggle button {
@@ -60,7 +100,7 @@ h1 {
 
 body.lang-en .language-toggle [data-language="en"],
 body.lang-zh .language-toggle [data-language="zh"] {
-  background: #18202a;
+  background: #102033;
   color: #ffffff;
 }
 
@@ -77,22 +117,24 @@ body.lang-zh [data-lang="zh"] {
 }
 
 h2 {
-  margin-top: 28px;
+  margin-top: 34px;
   font-size: 18px;
+  color: #102033;
 }
 
 .summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-top: 20px;
+  gap: 14px;
+  margin-top: 0;
 }
 
 .metric {
-  border: 1px solid #d8dee7;
+  border: 1px solid #d5e0ea;
   border-radius: 8px;
-  background: #ffffff;
-  padding: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 17px;
+  box-shadow: 0 10px 28px rgba(20, 32, 51, 0.05);
 }
 
 .label {
@@ -105,12 +147,13 @@ h2 {
   margin-top: 8px;
   font-size: 22px;
   font-weight: 700;
+  color: #102033;
 }
 
 .gauge-grid {
   display: grid;
   grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 0.9fr);
-  gap: 16px;
+  gap: 22px;
   align-items: center;
 }
 
@@ -165,11 +208,19 @@ h2 {
 }
 
 .panel {
-  border: 1px solid #d8dee7;
+  border: 1px solid #d5e0ea;
   border-radius: 8px;
-  background: #ffffff;
-  margin-top: 12px;
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  margin-top: 14px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(20, 32, 51, 0.045);
+}
+
+.panel-kicker {
+  margin: 0 0 14px;
+  color: #5d6b7a;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .methodology {
@@ -222,13 +273,13 @@ table {
 th,
 td {
   border-bottom: 1px solid #e3e8ef;
-  padding: 10px;
+  padding: 12px 10px;
   text-align: left;
   white-space: nowrap;
 }
 
 th {
-  background: #eef2f6;
+  background: #edf4fa;
   color: #3b4754;
   font-size: 12px;
   text-transform: uppercase;
@@ -251,6 +302,10 @@ th {
     flex-direction: column;
   }
 
+  .top-actions {
+    justify-content: flex-start;
+  }
+
   .gauge-grid {
     grid-template-columns: 1fr;
   }
@@ -264,18 +319,24 @@ th {
 <body class="lang-en">
 <main>
 <div class="topbar">
+<div class="brand-block">
 <h1><span data-lang="en">Market Regime Dashboard</span><span data-lang="zh">市场状态仪表盘</span></h1>
+<p class="subtitle"><span data-lang="en">Finance-tech market monitor</span><span data-lang="zh">金融科技市场监测</span></p>
+</div>
+<div class="top-actions">
+<a class="github-link" href="https://github.com/jinsong-y/nasdaq-invest-analysis" target="_blank" rel="noopener noreferrer"><span data-lang="en">GitHub</span><span data-lang="zh">GitHub</span></a>
 <div class="language-toggle" aria-label="Language switch"><button type="button" data-language="en" aria-pressed="true">English</button><button type="button" data-language="zh" aria-pressed="false">中文</button></div>
 </div>
-<section class="summary"><div class="metric"><div class="label"><span data-lang="en">As of</span><span data-lang="zh">日期</span></div><div class="value">2026-04-30</div></div><div class="metric"><div class="label"><span data-lang="en">Regime</span><span data-lang="zh">状态</span></div><div class="value"><span data-lang="en">warm_recovery</span><span data-lang="zh">warm_recovery</span></div></div><div class="metric"><div class="label"><span data-lang="en">Action</span><span data-lang="zh">动作</span></div><div class="value"><span data-lang="en">normal_dca</span><span data-lang="zh">正常定投</span></div></div><div class="metric"><div class="label"><span data-lang="en">Temperature</span><span data-lang="zh">温度</span></div><div class="value">63.46</div></div><div class="metric"><div class="label"><span data-lang="en">Confidence</span><span data-lang="zh">置信度</span></div><div class="value">90.23</div></div></section>
+</div>
+<section class="summary"><div class="metric"><div class="label"><span data-lang="en">As of</span><span data-lang="zh">日期</span></div><div class="value">2026-04-30</div></div><div class="metric"><div class="label"><span data-lang="en">Regime</span><span data-lang="zh">状态</span></div><div class="value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></div></div><div class="metric"><div class="label"><span data-lang="en">Action</span><span data-lang="zh">动作</span></div><div class="value"><span data-lang="en">normal_dca</span><span data-lang="zh">正常定投</span></div></div><div class="metric"><div class="label"><span data-lang="en">Temperature</span><span data-lang="zh">温度</span></div><div class="value">63.46</div></div><div class="metric"><div class="label"><span data-lang="en">Confidence</span><span data-lang="zh">置信度</span></div><div class="value">90.23</div></div></section>
 <h2><span data-lang="en">Config</span><span data-lang="zh">配置</span></h2><section class="panel"><ul><li><strong>config_source</strong>: recommended robustness config</li><li><strong>recommendation_generated_at</strong>: 2026-05-04T01:07:44.216965+00:00</li><li><strong>robustness_report_path</strong>: reports/market_regime_robustness/index.html</li></ul></section>
-<h2><span data-lang="en">Market State Gauge</span><span data-lang="zh">市场状态指针</span></h2><section class="panel"><div class="gauge-grid"><svg class="regime-gauge" viewBox="0 0 240 145" role="img" aria-labelledby="gauge-title gauge-desc"><title id="gauge-title">Market regime gauge</title><desc id="gauge-desc">Current market regime is Warm Recovery / 暖修复.</desc><path d="M 20 116 A 100 100 0 0 1 220 116" fill="none" stroke="#e3e8ef" stroke-width="18" stroke-linecap="round"/><path d="M 20.00 116.00 A 100.00 100.00 0 0 1 27.02 79.19" fill="none" stroke="#7f1d1d" stroke-width="18" stroke-linecap="butt" aria-label="Panic Low"/><path d="M 27.02 79.19 A 100.00 100.00 0 0 1 51.55 43.10" fill="none" stroke="#c2410c" stroke-width="18" stroke-linecap="butt" aria-label="Stress Low"/><path d="M 51.55 43.10 A 100.00 100.00 0 0 1 95.13 19.14" fill="none" stroke="#d97706" stroke-width="18" stroke-linecap="butt" aria-label="Recovery"/><path d="M 95.13 19.14 A 100.00 100.00 0 0 1 144.87 19.14" fill="none" stroke="#15803d" stroke-width="18" stroke-linecap="butt" aria-label="Normal"/><path d="M 144.87 19.14 A 100.00 100.00 0 0 1 173.58 31.57" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt" aria-label="Warm Recovery"/><path d="M 173.58 31.57 A 100.00 100.00 0 0 1 197.05 52.26" fill="none" stroke="#65a30d" stroke-width="18" stroke-linecap="butt" aria-label="Warm"/><path d="M 197.05 52.26 A 100.00 100.00 0 0 1 212.98 79.19" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt" aria-label="Overheated"/><path d="M 212.98 79.19 A 100.00 100.00 0 0 1 218.23 97.26" fill="none" stroke="#ea580c" stroke-width="18" stroke-linecap="butt" aria-label="Top Risk Watch"/><path d="M 218.23 97.26 A 100.00 100.00 0 0 1 220.00 116.00" fill="none" stroke="#7c2d12" stroke-width="18" stroke-linecap="butt" aria-label="Top Risk"/><line x1="120" y1="116" x2="150.18" y2="46.25" stroke="#18202a" stroke-width="4" stroke-linecap="round"/><circle cx="120" cy="116" r="7" fill="#18202a"/><text x="120" y="132" class="gauge-label" data-lang="en">Warm Recovery</text><text x="120" y="132" class="gauge-label" data-lang="zh">暖修复</text><text x="120" y="142" class="gauge-sub">current regime / 当前状态</text></svg><ul class="legend-grid"><li class="legend-item"><span class="swatch" style="background:#7f1d1d"></span><strong><span data-lang="en">Panic Low</span><span data-lang="zh">恐慌低位</span></strong><span>0-12: <span data-lang="en">Severe stress; prices and sentiment are deeply depressed.</span><span data-lang="zh">严重压力；价格和情绪明显低迷。</span></span></li><li class="legend-item"><span class="swatch" style="background:#c2410c"></span><strong><span data-lang="en">Stress Low</span><span data-lang="zh">压力偏低</span></strong><span>12-26: <span data-lang="en">Below-trend market with elevated stress.</span><span data-lang="zh">低于趋势且压力升高。</span></span></li><li class="legend-item"><span class="swatch" style="background:#d97706"></span><strong><span data-lang="en">Recovery</span><span data-lang="zh">修复期</span></strong><span>26-42: <span data-lang="en">Repair signals improving after stress.</span><span data-lang="zh">压力后修复信号改善。</span></span></li><li class="legend-item"><span class="swatch" style="background:#15803d"></span><strong><span data-lang="en">Normal</span><span data-lang="zh">正常</span></strong><span>42-58: <span data-lang="en">Balanced market; no major extreme dominates.</span><span data-lang="zh">市场均衡；没有主要极端信号。</span></span></li><li class="legend-item"><span class="swatch" style="background:#84cc16"></span><strong><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></strong><span>58-68: <span data-lang="en">Repair signals are strong, but conditions are already warm.</span><span data-lang="zh">修复信号强，但市场已经偏热。</span><span data-lang="en">Current.</span><span data-lang="zh">当前。</span></span></li><li class="legend-item"><span class="swatch" style="background:#65a30d"></span><strong><span data-lang="en">Warm</span><span data-lang="zh">偏热</span></strong><span>68-78: <span data-lang="en">Above-trend market with warmer conditions.</span><span data-lang="zh">高于趋势，市场温度偏暖。</span></span></li><li class="legend-item"><span class="swatch" style="background:#dc2626"></span><strong><span data-lang="en">Overheated</span><span data-lang="zh">过热</span></strong><span>78-88: <span data-lang="en">Multiple overheat signals are active.</span><span data-lang="zh">多个过热信号同时出现。</span></span></li><li class="legend-item"><span class="swatch" style="background:#ea580c"></span><strong><span data-lang="en">Top Risk Watch</span><span data-lang="zh">顶部风险观察</span></strong><span>88-94: <span data-lang="en">Top-risk evidence is elevated but below full risk.</span><span data-lang="zh">顶部风险证据升高，但尚未达到完整风险状态。</span></span></li><li class="legend-item"><span class="swatch" style="background:#7c2d12"></span><strong><span data-lang="en">Top Risk</span><span data-lang="zh">顶部风险</span></strong><span>94-100: <span data-lang="en">Overheat plus structural deterioration risk.</span><span data-lang="zh">过热叠加结构走弱风险。</span></span></li></ul></div></section>
+<h2><span data-lang="en">Market State Gauge</span><span data-lang="zh">市场状态指针</span></h2><section class="panel"><div class="gauge-grid"><svg class="regime-gauge" viewBox="0 0 240 145" role="img" aria-labelledby="gauge-title gauge-desc"><title id="gauge-title">Market regime gauge</title><desc id="gauge-desc">Current market regime is Warm Recovery / 暖修复.</desc><path d="M 20 116 A 100 100 0 0 1 220 116" fill="none" stroke="#e3e8ef" stroke-width="18" stroke-linecap="round"/><path d="M 20.00 116.00 A 100.00 100.00 0 0 1 27.02 79.19" fill="none" stroke="#7f1d1d" stroke-width="18" stroke-linecap="butt" aria-label="Panic Low"/><path d="M 27.02 79.19 A 100.00 100.00 0 0 1 51.55 43.10" fill="none" stroke="#c2410c" stroke-width="18" stroke-linecap="butt" aria-label="Stress Low"/><path d="M 51.55 43.10 A 100.00 100.00 0 0 1 95.13 19.14" fill="none" stroke="#d97706" stroke-width="18" stroke-linecap="butt" aria-label="Recovery"/><path d="M 95.13 19.14 A 100.00 100.00 0 0 1 144.87 19.14" fill="none" stroke="#15803d" stroke-width="18" stroke-linecap="butt" aria-label="Normal"/><path d="M 144.87 19.14 A 100.00 100.00 0 0 1 173.58 31.57" fill="none" stroke="#84cc16" stroke-width="18" stroke-linecap="butt" aria-label="Warm Recovery"/><path d="M 173.58 31.57 A 100.00 100.00 0 0 1 197.05 52.26" fill="none" stroke="#65a30d" stroke-width="18" stroke-linecap="butt" aria-label="Warm"/><path d="M 197.05 52.26 A 100.00 100.00 0 0 1 212.98 79.19" fill="none" stroke="#dc2626" stroke-width="18" stroke-linecap="butt" aria-label="Overheated"/><path d="M 212.98 79.19 A 100.00 100.00 0 0 1 218.23 97.26" fill="none" stroke="#ea580c" stroke-width="18" stroke-linecap="butt" aria-label="Top Risk Watch"/><path d="M 218.23 97.26 A 100.00 100.00 0 0 1 220.00 116.00" fill="none" stroke="#7c2d12" stroke-width="18" stroke-linecap="butt" aria-label="Top Risk"/><line x1="120" y1="116" x2="150.18" y2="46.25" stroke="#18202a" stroke-width="4" stroke-linecap="round"/><circle cx="120" cy="116" r="7" fill="#18202a"/><text x="120" y="132" class="gauge-label" data-lang="en">Warm Recovery</text><text x="120" y="132" class="gauge-label" data-lang="zh">暖修复</text><text x="120" y="142" class="gauge-sub" data-lang="en">current regime</text><text x="120" y="142" class="gauge-sub" data-lang="zh">当前状态</text></svg><ul class="legend-grid"><li class="legend-item"><span class="swatch" style="background:#7f1d1d"></span><strong><span data-lang="en">Panic Low</span><span data-lang="zh">恐慌低位</span></strong><span>0-12: <span data-lang="en">Severe stress; prices and sentiment are deeply depressed.</span><span data-lang="zh">严重压力；价格和情绪明显低迷。</span></span></li><li class="legend-item"><span class="swatch" style="background:#c2410c"></span><strong><span data-lang="en">Stress Low</span><span data-lang="zh">压力偏低</span></strong><span>12-26: <span data-lang="en">Below-trend market with elevated stress.</span><span data-lang="zh">低于趋势且压力升高。</span></span></li><li class="legend-item"><span class="swatch" style="background:#d97706"></span><strong><span data-lang="en">Recovery</span><span data-lang="zh">修复期</span></strong><span>26-42: <span data-lang="en">Repair signals improving after stress.</span><span data-lang="zh">压力后修复信号改善。</span></span></li><li class="legend-item"><span class="swatch" style="background:#15803d"></span><strong><span data-lang="en">Normal</span><span data-lang="zh">正常</span></strong><span>42-58: <span data-lang="en">Balanced market; no major extreme dominates.</span><span data-lang="zh">市场均衡；没有主要极端信号。</span></span></li><li class="legend-item"><span class="swatch" style="background:#84cc16"></span><strong><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></strong><span>58-68: <span data-lang="en">Repair signals are strong, but conditions are already warm.</span><span data-lang="zh">修复信号强，但市场已经偏热。</span><span data-lang="en">Current.</span><span data-lang="zh">当前。</span></span></li><li class="legend-item"><span class="swatch" style="background:#65a30d"></span><strong><span data-lang="en">Warm</span><span data-lang="zh">偏热</span></strong><span>68-78: <span data-lang="en">Above-trend market with warmer conditions.</span><span data-lang="zh">高于趋势，市场温度偏暖。</span></span></li><li class="legend-item"><span class="swatch" style="background:#dc2626"></span><strong><span data-lang="en">Overheated</span><span data-lang="zh">过热</span></strong><span>78-88: <span data-lang="en">Multiple overheat signals are active.</span><span data-lang="zh">多个过热信号同时出现。</span></span></li><li class="legend-item"><span class="swatch" style="background:#ea580c"></span><strong><span data-lang="en">Top Risk Watch</span><span data-lang="zh">顶部风险观察</span></strong><span>88-94: <span data-lang="en">Top-risk evidence is elevated but below full risk.</span><span data-lang="zh">顶部风险证据升高，但尚未达到完整风险状态。</span></span></li><li class="legend-item"><span class="swatch" style="background:#7c2d12"></span><strong><span data-lang="en">Top Risk</span><span data-lang="zh">顶部风险</span></strong><span>94-100: <span data-lang="en">Overheat plus structural deterioration risk.</span><span data-lang="zh">过热叠加结构走弱风险。</span></span></li></ul></div></section>
 <h2><span data-lang="en">Summary</span><span data-lang="zh">摘要</span></h2><section class="panel"><p><span data-lang="en">Repair signals are strong, but conditions are already warm.</span><span data-lang="zh">修复信号强，但市场已经偏热。</span></p></section>
 <h2><span data-lang="en">How This Dashboard Works</span><span data-lang="zh">仪表说明</span></h2><section class="panel"><div class="methodology"><p class="methodology-intro"><span data-lang="en">This dashboard is a Nasdaq 100 market-regime classifier. It is built to explain market condition and DCA pacing, not to forecast returns.</span><span data-lang="zh">这个仪表盘是纳指 100 市场状态分类器，用来解释市场环境和定投节奏，不是收益预测。</span></p><div class="methodology-group"><h3><span data-lang="en">Inputs</span><span data-lang="zh">指标</span></h3><ul class="methodology-list"><li><strong><span data-lang="en">NDX price and 180-day SMA</span><span data-lang="zh">纳指价格与 180 日均线</span></strong>: <span data-lang="en">Shows trend direction and how far price is above or below its long-term baseline.</span><span data-lang="zh">判断趋势方向，以及价格相对长期基准的偏离程度。</span></li><li><strong><span data-lang="en">VIX / VXN volatility</span><span data-lang="zh">VIX / VXN 波动率</span></strong>: <span data-lang="en">Measures market stress; high volatility raises low-zone or risk signals depending on price context.</span><span data-lang="zh">衡量市场压力；高波动会结合价格位置影响低位或风险判断。</span></li><li><strong><span data-lang="en">CNN Fear &amp; Greed</span><span data-lang="zh">CNN 恐惧贪婪指数</span></strong>: <span data-lang="en">Tracks sentiment and short-term emotional temperature.</span><span data-lang="zh">衡量市场情绪和短期情绪温度。</span></li><li><strong><span data-lang="en">NDXE / NDX breadth</span><span data-lang="zh">NDXE / NDX 市场广度</span></strong>: <span data-lang="en">Compares equal-weighted Nasdaq 100 with cap-weighted Nasdaq 100 to see whether strength is broad.</span><span data-lang="zh">比较等权纳指与市值加权纳指，观察上涨是否足够广泛。</span></li><li><strong><span data-lang="en">SOX / NDX semiconductor leadership</span><span data-lang="zh">SOX / NDX 半导体主线强弱</span></strong>: <span data-lang="en">Checks whether the semiconductor core of the tech cycle is confirming or weakening.</span><span data-lang="zh">观察半导体这个科技周期核心主线是在确认还是走弱。</span></li></ul></div><div class="methodology-group"><h3><span data-lang="en">Scoring and output</span><span data-lang="zh">评分与输出</span></h3><ul class="methodology-list"><li><strong><span data-lang="en">Scores</span><span data-lang="zh">评分</span></strong>: <span data-lang="en">The model combines temperature, low-zone, overheat, trend, recovery, and confidence scores.</span><span data-lang="zh">模型合成温度、低位、过热、趋势、修复和置信度评分。</span></li><li><strong><span data-lang="en">Regime</span><span data-lang="zh">状态</span></strong>: <span data-lang="en">Those scores map to regimes such as panic low, stress low, recovery, normal, warm, overheated, and top risk.</span><span data-lang="zh">这些评分会映射为恐慌低位、压力偏低、修复、正常、偏热、过热和顶部风险等状态。</span></li><li><strong><span data-lang="en">Action</span><span data-lang="zh">动作</span></strong>: <span data-lang="en">The action is a DCA pacing reference: add, keep normal, reduce, or pause new buying.</span><span data-lang="zh">动作是定投节奏参考：加仓、正常定投、降速或暂停新买入。</span></li></ul></div><div class="methodology-group"><h3><span data-lang="en">Backtest validation</span><span data-lang="zh">回测验证</span></h3><ul class="methodology-list"><li><span data-lang="en">Robustness check: 9 of 9 known stress or top-risk dates passed.</span><span data-lang="zh">历史校验：9 个已知压力或顶部风险日期全部通过。</span></li><li><span data-lang="en">Threshold grid score improved from 113.72 to 116.59 after robustness tuning.</span><span data-lang="zh">阈值网格评分从 113.72 提升到 116.59。</span></li><li><span data-lang="en">Walk-forward windows were checked across 2011-2015, 2016-2020, 2021-2026, and multiple stress periods.</span><span data-lang="zh">已在 2011-2015、2016-2020、2021-2026 以及多个压力时期做 walk-forward 校验。</span></li></ul></div><p class="methodology-note"><span data-lang="en">This is a regime and DCA pacing reference, not a return forecast.</span><span data-lang="zh">这是市场状态与定投节奏参考，不是收益预测。</span></p></div></section>
 <h2><span data-lang="en">Drivers</span><span data-lang="zh">主要驱动</span></h2><section class="panel"><ul><li><span data-lang="en">semiconductor</span><span data-lang="zh">半导体</span></li><li><span data-lang="en">recovery</span><span data-lang="zh">修复</span></li><li><span data-lang="en">trend</span><span data-lang="zh">趋势</span></li></ul></section>
 <h2><span data-lang="en">Risks</span><span data-lang="zh">风险</span></h2><section class="panel"><ul><li><span data-lang="en">no_major_extreme</span><span data-lang="zh">无主要极端</span></li></ul></section>
-<h2><span data-lang="en">Latest Inputs</span><span data-lang="zh">最新输入</span></h2><section class="panel"><ul><li><strong>cnn_fear_greed</strong>: 66.00</li><li><strong>cnn_ma5</strong>: 65.60</li><li><strong>dist_sma</strong>: 0.10</li><li><strong>ndx</strong>: 27452.12</li><li><strong>ndxe_ma</strong>: 0.35</li><li><strong>ndxe_ndx</strong>: 0.34</li><li><strong>sma</strong>: 25030.24</li><li><strong>sox_ma</strong>: 0.34</li><li><strong>sox_ndx</strong>: 0.38</li><li><strong>vix</strong>: 16.89</li><li><strong>vix_pctile</strong>: 0.40</li><li><strong>vxn</strong>: 21.79</li><li><strong>vxn_pctile</strong>: 0.49</li></ul></section>
-<h2><span data-lang="en">Recent Daily Regimes</span><span data-lang="zh">近期每日状态</span></h2><section class="panel"><div class="table-wrap"><table><thead><tr><th>date</th><th>market_regime</th><th>temperature_score</th><th>undervaluation_score</th><th>overheat_score</th><th>trend_score</th><th>volatility_score</th><th>sentiment_score</th><th>breadth_score</th><th>semiconductor_score</th><th>top_risk_score</th><th>recovery_score</th><th>confidence_score</th><th>dashboard_action</th><th>missing_inputs</th><th>ndx</th><th>sma</th><th>dist_sma</th><th>vxn</th><th>vix</th><th>vxn_pctile</th><th>vix_pctile</th><th>cnn_fear_greed</th><th>cnn_ma5</th><th>ndxe_ndx</th><th>ndxe_ma</th><th>sox_ndx</th><th>sox_ma</th></tr></thead><tbody><tr><td>2026-04-03</td><td>unscorable</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>unavailable</td><td>cnn_fear_greed,dist_sma,ndx,ndxe_ndx,sox_ndx,vix,vix_pctile,vxn,vxn_pctile</td><td></td><td>24728.31</td><td></td><td></td><td></td><td></td><td></td><td></td><td>15.50</td><td></td><td>0.35</td><td></td><td>0.32</td></tr><tr><td>2026-04-06</td><td>normal</td><td>32.42</td><td>39.07</td><td>0.00</td><td>44.53</td><td>83.08</td><td>23.00</td><td>52.09</td><td>59.72</td><td>0.00</td><td>30.82</td><td>66.42</td><td>normal_dca</td><td></td><td>24192.17</td><td>24733.14</td><td>-0.02</td><td>27.39</td><td>24.17</td><td>0.77</td><td>0.83</td><td>23.00</td><td>17.75</td><td>0.35</td><td>0.35</td><td>0.33</td><td>0.32</td></tr><tr><td>2026-04-07</td><td>normal</td><td>33.28</td><td>37.16</td><td>0.00</td><td>44.58</td><td>87.27</td><td>28.00</td><td>50.22</td><td>64.56</td><td>0.00</td><td>37.02</td><td>64.32</td><td>normal_dca</td><td></td><td>24202.37</td><td>24738.31</td><td>-0.02</td><td>28.43</td><td>25.78</td><td>0.81</td><td>0.87</td><td>28.00</td><td>21.00</td><td>0.35</td><td>0.35</td><td>0.33</td><td>0.32</td></tr><tr><td>2026-04-08</td><td>normal</td><td>44.92</td><td>12.87</td><td>1.42</td><td>51.57</td><td>70.83</td><td>34.00</td><td>48.04</td><td>80.99</td><td>3.03</td><td>58.27</td><td>78.65</td><td>normal_dca</td><td></td><td>24903.17</td><td>24747.32</td><td>0.01</td><td>25.24</td><td>21.04</td><td>0.68</td><td>0.71</td><td>34.00</td><td>26.00</td><td>0.35</td><td>0.35</td><td>0.34</td><td>0.32</td></tr><tr><td>2026-04-09</td><td>recovery</td><td>49.12</td><td>5.22</td><td>2.94</td><td>53.27</td><td>61.97</td><td>38.00</td><td>42.79</td><td>87.39</td><td>9.42</td><td>63.67</td><td>81.77</td><td>normal_dca</td><td></td><td>25082.09</td><td>24758.09</td><td>0.01</td><td>23.50</td><td>19.49</td><td>0.60</td><td>0.62</td><td>38.00</td><td>30.75</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.32</td></tr><tr><td>2026-04-10</td><td>recovery</td><td>49.79</td><td>3.96</td><td>3.13</td><td>53.48</td><td>60.27</td><td>37.00</td><td>39.07</td><td>97.58</td><td>13.28</td><td>68.48</td><td>83.16</td><td>normal_dca</td><td></td><td>25116.34</td><td>24771.69</td><td>0.01</td><td>23.09</td><td>19.23</td><td>0.58</td><td>0.60</td><td>37.00</td><td>32.00</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.32</td></tr><tr><td>2026-04-13</td><td>recovery</td><td>51.21</td><td>3.35</td><td>5.44</td><td>56.05</td><td>59.47</td><td>43.00</td><td>41.26</td><td>99.52</td><td>12.82</td><td>75.93</td><td>86.61</td><td>normal_dca</td><td></td><td>25383.72</td><td>24784.38</td><td>0.02</td><td>22.19</td><td>19.12</td><td>0.52</td><td>0.59</td><td>43.00</td><td>36.00</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.32</td></tr><tr><td>2026-04-14</td><td>recovery</td><td>54.72</td><td>0.00</td><td>9.45</td><td>60.50</td><td>53.34</td><td>49.00</td><td>36.86</td><td>99.29</td><td>20.23</td><td>82.30</td><td>87.99</td><td>normal_dca</td><td></td><td>25842.00</td><td>24800.70</td><td>0.04</td><td>21.80</td><td>18.36</td><td>0.50</td><td>0.53</td><td>49.00</td><td>40.20</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.32</td></tr><tr><td>2026-04-15</td><td>recovery</td><td>56.29</td><td>0.00</td><td>12.58</td><td>63.97</td><td>52.76</td><td>58.00</td><td>35.23</td><td>90.97</td><td>24.20</td><td>85.52</td><td>88.65</td><td>normal_dca</td><td></td><td>26204.58</td><td>24817.40</td><td>0.06</td><td>22.25</td><td>18.17</td><td>0.53</td><td>0.52</td><td>58.00</td><td>45.00</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.33</td></tr><tr><td>2026-04-16</td><td>warm_recovery</td><td>58.07</td><td>0.00</td><td>16.15</td><td>65.09</td><td>52.27</td><td>63.00</td><td>36.62</td><td>92.05</td><td>25.49</td><td>87.24</td><td>89.16</td><td>normal_dca</td><td></td><td>26333.00</td><td>24834.42</td><td>0.06</td><td>22.18</td><td>17.94</td><td>0.52</td><td>0.50</td><td>63.00</td><td>50.00</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.33</td></tr><tr><td>2026-04-17</td><td>warm_recovery</td><td>61.67</td><td>0.00</td><td>23.34</td><td>68.31</td><td>53.42</td><td>68.00</td><td>36.91</td><td>96.85</td><td>30.59</td><td>91.31</td><td>89.97</td><td>normal_dca</td><td></td><td>26672.43</td><td>24852.11</td><td>0.07</td><td>21.57</td><td>17.48</td><td>0.48</td><td>0.47</td><td>68.00</td><td>56.20</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.33</td></tr><tr><td>2026-04-20</td><td>warm_recovery</td><td>61.72</td><td>1.72</td><td>24.99</td><td>67.30</td><td>57.29</td><td>71.00</td><td>40.47</td><td>99.70</td><td>28.27</td><td>87.99</td><td>88.94</td><td>normal_dca</td><td></td><td>26590.34</td><td>24869.82</td><td>0.07</td><td>22.93</td><td>18.87</td><td>0.57</td><td>0.57</td><td>71.00</td><td>61.80</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.33</td></tr><tr><td>2026-04-21</td><td>warm_recovery</td><td>58.23</td><td>5.35</td><td>21.27</td><td>66.02</td><td>62.13</td><td>68.00</td><td>41.01</td><td>100.00</td><td>24.94</td><td>76.78</td><td>84.56</td><td>normal_dca</td><td></td><td>26479.47</td><td>24885.08</td><td>0.06</td><td>23.80</td><td>19.50</td><td>0.61</td><td>0.62</td><td>68.00</td><td>65.60</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.33</td></tr><tr><td>2026-04-22</td><td>warm_recovery</td><td>61.35</td><td>3.76</td><td>26.09</td><td>70.42</td><td>60.02</td><td>69.00</td><td>38.40</td><td>100.00</td><td>31.17</td><td>80.92</td><td>85.18</td><td>normal_dca</td><td></td><td>26937.27</td><td>24902.93</td><td>0.08</td><td>23.58</td><td>18.92</td><td>0.60</td><td>0.57</td><td>69.00</td><td>67.80</td><td>0.34</td><td>0.35</td><td>0.37</td><td>0.33</td></tr><tr><td>2026-04-23</td><td>warm_recovery</td><td>59.49</td><td>4.26</td><td>22.82</td><td>68.69</td><td>60.68</td><td>67.00</td><td>40.54</td><td>100.00</td><td>26.57</td><td>87.30</td><td>88.97</td><td>normal_dca</td><td></td><td>26782.62</td><td>24919.99</td><td>0.07</td><td>23.32</td><td>19.31</td><td>0.59</td><td>0.61</td><td>67.00</td><td>68.60</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.33</td></tr><tr><td>2026-04-24</td><td>warm_recovery</td><td>61.95</td><td>2.83</td><td>26.46</td><td>73.69</td><td>58.78</td><td>66.00</td><td>36.57</td><td>100.00</td><td>33.27</td><td>100.00</td><td>93.35</td><td>normal_dca</td><td></td><td>27303.67</td><td>24940.75</td><td>0.09</td><td>23.38</td><td>18.71</td><td>0.59</td><td>0.56</td><td>66.00</td><td>68.20</td><td>0.34</td><td>0.35</td><td>0.39</td><td>0.33</td></tr><tr><td>2026-04-27</td><td>warm_recovery</td><td>63.22</td><td>1.72</td><td>27.99</td><td>73.48</td><td>57.30</td><td>68.00</td><td>34.01</td><td>100.00</td><td>36.98</td><td>94.53</td><td>90.14</td><td>normal_dca</td><td></td><td>27305.68</td><td>24961.51</td><td>0.09</td><td>23.08</td><td>18.02</td><td>0.57</td><td>0.51</td><td>68.00</td><td>67.60</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.33</td></tr><tr><td>2026-04-28</td><td>warm_recovery</td><td>59.99</td><td>2.09</td><td>21.86</td><td>70.48</td><td>57.79</td><td>64.00</td><td>34.11</td><td>100.00</td><td>32.29</td><td>77.10</td><td>83.24</td><td>normal_dca</td><td></td><td>27029.01</td><td>24982.57</td><td>0.08</td><td>23.24</td><td>17.83</td><td>0.58</td><td>0.49</td><td>64.00</td><td>66.80</td><td>0.34</td><td>0.35</td><td>0.37</td><td>0.33</td></tr><tr><td>2026-04-29</td><td>warm_recovery</td><td>59.42</td><td>4.69</td><td>23.06</td><td>71.81</td><td>61.25</td><td>64.00</td><td>35.80</td><td>100.00</td><td>31.50</td><td>85.28</td><td>87.08</td><td>normal_dca</td><td></td><td>27186.99</td><td>25005.33</td><td>0.09</td><td>23.76</td><td>18.81</td><td>0.61</td><td>0.57</td><td>64.00</td><td>65.80</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.34</td></tr><tr><td>2026-04-30</td><td>warm_recovery</td><td>63.46</td><td>0.00</td><td>26.91</td><td>74.19</td><td>59.95</td><td>66.00</td><td>38.25</td><td>100.00</td><td>31.93</td><td>92.48</td><td>90.23</td><td>normal_dca</td><td></td><td>27452.12</td><td>25030.24</td><td>0.10</td><td>21.79</td><td>16.89</td><td>0.49</td><td>0.40</td><td>66.00</td><td>65.60</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.34</td></tr></tbody></table></div></section>
+<h2><span data-lang="en">Latest Inputs</span><span data-lang="zh">最新输入</span></h2><section class="panel"><p class="panel-kicker"><span data-lang="en">Data date</span><span data-lang="zh">数据日期</span>: 2026-04-30</p><ul><li><strong>cnn_fear_greed</strong>: 66.00</li><li><strong>cnn_ma5</strong>: 65.60</li><li><strong>dist_sma</strong>: 0.10</li><li><strong>ndx</strong>: 27452.12</li><li><strong>ndxe_ma</strong>: 0.35</li><li><strong>ndxe_ndx</strong>: 0.34</li><li><strong>sma</strong>: 25030.24</li><li><strong>sox_ma</strong>: 0.34</li><li><strong>sox_ndx</strong>: 0.38</li><li><strong>vix</strong>: 16.89</li><li><strong>vix_pctile</strong>: 0.40</li><li><strong>vxn</strong>: 21.79</li><li><strong>vxn_pctile</strong>: 0.49</li></ul></section>
+<h2><span data-lang="en">Recent Daily Regimes</span><span data-lang="zh">近期每日状态</span></h2><section class="panel"><div class="table-wrap"><table><thead><tr><th>date</th><th>market_regime</th><th>temperature_score</th><th>undervaluation_score</th><th>overheat_score</th><th>trend_score</th><th>volatility_score</th><th>sentiment_score</th><th>breadth_score</th><th>semiconductor_score</th><th>top_risk_score</th><th>recovery_score</th><th>confidence_score</th><th>dashboard_action</th><th>missing_inputs</th><th>ndx</th><th>sma</th><th>dist_sma</th><th>vxn</th><th>vix</th><th>vxn_pctile</th><th>vix_pctile</th><th>cnn_fear_greed</th><th>cnn_ma5</th><th>ndxe_ndx</th><th>ndxe_ma</th><th>sox_ndx</th><th>sox_ma</th></tr></thead><tbody><tr><td>2026-04-30</td><td>warm_recovery</td><td>63.46</td><td>0.00</td><td>26.91</td><td>74.19</td><td>59.95</td><td>66.00</td><td>38.25</td><td>100.00</td><td>31.93</td><td>92.48</td><td>90.23</td><td>normal_dca</td><td></td><td>27452.12</td><td>25030.24</td><td>0.10</td><td>21.79</td><td>16.89</td><td>0.49</td><td>0.40</td><td>66.00</td><td>65.60</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.34</td></tr><tr><td>2026-04-29</td><td>warm_recovery</td><td>59.42</td><td>4.69</td><td>23.06</td><td>71.81</td><td>61.25</td><td>64.00</td><td>35.80</td><td>100.00</td><td>31.50</td><td>85.28</td><td>87.08</td><td>normal_dca</td><td></td><td>27186.99</td><td>25005.33</td><td>0.09</td><td>23.76</td><td>18.81</td><td>0.61</td><td>0.57</td><td>64.00</td><td>65.80</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.34</td></tr><tr><td>2026-04-28</td><td>warm_recovery</td><td>59.99</td><td>2.09</td><td>21.86</td><td>70.48</td><td>57.79</td><td>64.00</td><td>34.11</td><td>100.00</td><td>32.29</td><td>77.10</td><td>83.24</td><td>normal_dca</td><td></td><td>27029.01</td><td>24982.57</td><td>0.08</td><td>23.24</td><td>17.83</td><td>0.58</td><td>0.49</td><td>64.00</td><td>66.80</td><td>0.34</td><td>0.35</td><td>0.37</td><td>0.33</td></tr><tr><td>2026-04-27</td><td>warm_recovery</td><td>63.22</td><td>1.72</td><td>27.99</td><td>73.48</td><td>57.30</td><td>68.00</td><td>34.01</td><td>100.00</td><td>36.98</td><td>94.53</td><td>90.14</td><td>normal_dca</td><td></td><td>27305.68</td><td>24961.51</td><td>0.09</td><td>23.08</td><td>18.02</td><td>0.57</td><td>0.51</td><td>68.00</td><td>67.60</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.33</td></tr><tr><td>2026-04-24</td><td>warm_recovery</td><td>61.95</td><td>2.83</td><td>26.46</td><td>73.69</td><td>58.78</td><td>66.00</td><td>36.57</td><td>100.00</td><td>33.27</td><td>100.00</td><td>93.35</td><td>normal_dca</td><td></td><td>27303.67</td><td>24940.75</td><td>0.09</td><td>23.38</td><td>18.71</td><td>0.59</td><td>0.56</td><td>66.00</td><td>68.20</td><td>0.34</td><td>0.35</td><td>0.39</td><td>0.33</td></tr><tr><td>2026-04-23</td><td>warm_recovery</td><td>59.49</td><td>4.26</td><td>22.82</td><td>68.69</td><td>60.68</td><td>67.00</td><td>40.54</td><td>100.00</td><td>26.57</td><td>87.30</td><td>88.97</td><td>normal_dca</td><td></td><td>26782.62</td><td>24919.99</td><td>0.07</td><td>23.32</td><td>19.31</td><td>0.59</td><td>0.61</td><td>67.00</td><td>68.60</td><td>0.34</td><td>0.35</td><td>0.38</td><td>0.33</td></tr><tr><td>2026-04-22</td><td>warm_recovery</td><td>61.35</td><td>3.76</td><td>26.09</td><td>70.42</td><td>60.02</td><td>69.00</td><td>38.40</td><td>100.00</td><td>31.17</td><td>80.92</td><td>85.18</td><td>normal_dca</td><td></td><td>26937.27</td><td>24902.93</td><td>0.08</td><td>23.58</td><td>18.92</td><td>0.60</td><td>0.57</td><td>69.00</td><td>67.80</td><td>0.34</td><td>0.35</td><td>0.37</td><td>0.33</td></tr><tr><td>2026-04-21</td><td>warm_recovery</td><td>58.23</td><td>5.35</td><td>21.27</td><td>66.02</td><td>62.13</td><td>68.00</td><td>41.01</td><td>100.00</td><td>24.94</td><td>76.78</td><td>84.56</td><td>normal_dca</td><td></td><td>26479.47</td><td>24885.08</td><td>0.06</td><td>23.80</td><td>19.50</td><td>0.61</td><td>0.62</td><td>68.00</td><td>65.60</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.33</td></tr><tr><td>2026-04-20</td><td>warm_recovery</td><td>61.72</td><td>1.72</td><td>24.99</td><td>67.30</td><td>57.29</td><td>71.00</td><td>40.47</td><td>99.70</td><td>28.27</td><td>87.99</td><td>88.94</td><td>normal_dca</td><td></td><td>26590.34</td><td>24869.82</td><td>0.07</td><td>22.93</td><td>18.87</td><td>0.57</td><td>0.57</td><td>71.00</td><td>61.80</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.33</td></tr><tr><td>2026-04-17</td><td>warm_recovery</td><td>61.67</td><td>0.00</td><td>23.34</td><td>68.31</td><td>53.42</td><td>68.00</td><td>36.91</td><td>96.85</td><td>30.59</td><td>91.31</td><td>89.97</td><td>normal_dca</td><td></td><td>26672.43</td><td>24852.11</td><td>0.07</td><td>21.57</td><td>17.48</td><td>0.48</td><td>0.47</td><td>68.00</td><td>56.20</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.33</td></tr><tr><td>2026-04-16</td><td>warm_recovery</td><td>58.07</td><td>0.00</td><td>16.15</td><td>65.09</td><td>52.27</td><td>63.00</td><td>36.62</td><td>92.05</td><td>25.49</td><td>87.24</td><td>89.16</td><td>normal_dca</td><td></td><td>26333.00</td><td>24834.42</td><td>0.06</td><td>22.18</td><td>17.94</td><td>0.52</td><td>0.50</td><td>63.00</td><td>50.00</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.33</td></tr><tr><td>2026-04-15</td><td>recovery</td><td>56.29</td><td>0.00</td><td>12.58</td><td>63.97</td><td>52.76</td><td>58.00</td><td>35.23</td><td>90.97</td><td>24.20</td><td>85.52</td><td>88.65</td><td>normal_dca</td><td></td><td>26204.58</td><td>24817.40</td><td>0.06</td><td>22.25</td><td>18.17</td><td>0.53</td><td>0.52</td><td>58.00</td><td>45.00</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.33</td></tr><tr><td>2026-04-14</td><td>recovery</td><td>54.72</td><td>0.00</td><td>9.45</td><td>60.50</td><td>53.34</td><td>49.00</td><td>36.86</td><td>99.29</td><td>20.23</td><td>82.30</td><td>87.99</td><td>normal_dca</td><td></td><td>25842.00</td><td>24800.70</td><td>0.04</td><td>21.80</td><td>18.36</td><td>0.50</td><td>0.53</td><td>49.00</td><td>40.20</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.32</td></tr><tr><td>2026-04-13</td><td>recovery</td><td>51.21</td><td>3.35</td><td>5.44</td><td>56.05</td><td>59.47</td><td>43.00</td><td>41.26</td><td>99.52</td><td>12.82</td><td>75.93</td><td>86.61</td><td>normal_dca</td><td></td><td>25383.72</td><td>24784.38</td><td>0.02</td><td>22.19</td><td>19.12</td><td>0.52</td><td>0.59</td><td>43.00</td><td>36.00</td><td>0.34</td><td>0.35</td><td>0.36</td><td>0.32</td></tr><tr><td>2026-04-10</td><td>recovery</td><td>49.79</td><td>3.96</td><td>3.13</td><td>53.48</td><td>60.27</td><td>37.00</td><td>39.07</td><td>97.58</td><td>13.28</td><td>68.48</td><td>83.16</td><td>normal_dca</td><td></td><td>25116.34</td><td>24771.69</td><td>0.01</td><td>23.09</td><td>19.23</td><td>0.58</td><td>0.60</td><td>37.00</td><td>32.00</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.32</td></tr><tr><td>2026-04-09</td><td>recovery</td><td>49.12</td><td>5.22</td><td>2.94</td><td>53.27</td><td>61.97</td><td>38.00</td><td>42.79</td><td>87.39</td><td>9.42</td><td>63.67</td><td>81.77</td><td>normal_dca</td><td></td><td>25082.09</td><td>24758.09</td><td>0.01</td><td>23.50</td><td>19.49</td><td>0.60</td><td>0.62</td><td>38.00</td><td>30.75</td><td>0.34</td><td>0.35</td><td>0.35</td><td>0.32</td></tr><tr><td>2026-04-08</td><td>normal</td><td>44.92</td><td>12.87</td><td>1.42</td><td>51.57</td><td>70.83</td><td>34.00</td><td>48.04</td><td>80.99</td><td>3.03</td><td>58.27</td><td>78.65</td><td>normal_dca</td><td></td><td>24903.17</td><td>24747.32</td><td>0.01</td><td>25.24</td><td>21.04</td><td>0.68</td><td>0.71</td><td>34.00</td><td>26.00</td><td>0.35</td><td>0.35</td><td>0.34</td><td>0.32</td></tr><tr><td>2026-04-07</td><td>normal</td><td>33.28</td><td>37.16</td><td>0.00</td><td>44.58</td><td>87.27</td><td>28.00</td><td>50.22</td><td>64.56</td><td>0.00</td><td>37.02</td><td>64.32</td><td>normal_dca</td><td></td><td>24202.37</td><td>24738.31</td><td>-0.02</td><td>28.43</td><td>25.78</td><td>0.81</td><td>0.87</td><td>28.00</td><td>21.00</td><td>0.35</td><td>0.35</td><td>0.33</td><td>0.32</td></tr><tr><td>2026-04-06</td><td>normal</td><td>32.42</td><td>39.07</td><td>0.00</td><td>44.53</td><td>83.08</td><td>23.00</td><td>52.09</td><td>59.72</td><td>0.00</td><td>30.82</td><td>66.42</td><td>normal_dca</td><td></td><td>24192.17</td><td>24733.14</td><td>-0.02</td><td>27.39</td><td>24.17</td><td>0.77</td><td>0.83</td><td>23.00</td><td>17.75</td><td>0.35</td><td>0.35</td><td>0.33</td><td>0.32</td></tr><tr><td>2026-04-03</td><td>unscorable</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.00</td><td>unavailable</td><td>cnn_fear_greed,dist_sma,ndx,ndxe_ndx,sox_ndx,vix,vix_pctile,vxn,vxn_pctile</td><td></td><td>24728.31</td><td></td><td></td><td></td><td></td><td></td><td></td><td>15.50</td><td></td><td>0.35</td><td></td><td>0.32</td></tr></tbody></table></div></section>
 </main>
 
 <script>

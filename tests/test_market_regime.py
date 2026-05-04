@@ -777,6 +777,67 @@ class MarketRegimeReportTests(unittest.TestCase):
             ]:
                 self.assertIn(text, html)
 
+    def test_write_dashboard_outputs_renders_finance_tech_chrome_and_github_link(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="top-actions"', html)
+            self.assertIn('class="github-link"', html)
+            self.assertIn('https://github.com/jinsong-y/nasdaq-invest-analysis', html)
+            self.assertIn("Finance-tech market monitor", html)
+            self.assertIn("金融科技市场监测", html)
+
+    def test_write_dashboard_outputs_uses_consistent_human_regime_labels(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["market_regime"] = "warm_recovery"
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('<div class="value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></div>', html)
+            self.assertIn('<text x="120" y="132" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
+            self.assertNotIn('<span data-lang="en">warm_recovery</span>', html)
+
+    def test_write_dashboard_outputs_latest_inputs_show_as_of_date(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn("Latest Inputs", html)
+            self.assertIn("Data date", html)
+            self.assertIn("数据日期", html)
+            self.assertIn("2026-04-30", html)
+
+    def test_write_dashboard_outputs_recent_daily_regimes_newest_first(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            daily = pd.concat(
+                [
+                    self._daily(),
+                    self._daily().assign(date="2026-05-01", market_regime="warm"),
+                ],
+                ignore_index=True,
+            )
+            write_dashboard_outputs(output_dir, daily, self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            first = html.index("<td>2026-05-01</td>")
+            second = html.index("<td>2026-04-30</td>")
+            self.assertLess(first, second)
+
+    def test_write_dashboard_outputs_localizes_gauge_subtitle(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            write_dashboard_outputs(output_dir, self._daily(), self._summary())
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('<text x="120" y="142" class="gauge-sub" data-lang="en">current regime</text>', html)
+            self.assertIn('<text x="120" y="142" class="gauge-sub" data-lang="zh">当前状态</text>', html)
+
     def test_write_dashboard_outputs_renders_config_metadata(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
