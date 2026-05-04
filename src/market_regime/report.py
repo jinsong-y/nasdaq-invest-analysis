@@ -28,6 +28,12 @@ REGIME_LABELS = {key: label for key, label, *_ in REGIME_BANDS}
 
 GITHUB_REPO_URL = "https://github.com/jinsong-y/nasdaq-invest-analysis"
 
+INPUT_GROUPS = [
+    ("Trend & Breadth", "趋势与广度", ("dist_sma", "ndxe_ndx", "sma", "ndx")),
+    ("Volatility & Sentiment", "波动与情绪", ("vxn", "vix", "cnn_fear_greed")),
+    ("Core Leadership", "核心主线", ("sox_ndx", "sox_ma")),
+]
+
 
 ZH_TEXT = {
     "Nasdaq 100 Market Regime Dashboard": "纳指100市场状态仪表盘",
@@ -53,6 +59,9 @@ ZH_TEXT = {
     "Copied": "已复制",
     "Copy failed": "复制失败",
     "send this page info to your AI for further analysis": "将本页信息发送给你的 AI 继续分析",
+    "Trend & Breadth": "趋势与广度",
+    "Volatility & Sentiment": "波动与情绪",
+    "Core Leadership": "核心主线",
     "current regime": "当前状态",
     "Panic Low": "恐慌低位",
     "Stress Low": "压力偏低",
@@ -123,10 +132,30 @@ CSS = """
   --accent-soft: #fffbeb;
   --ring: rgba(15, 118, 110, 0.22);
   --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-  --radius: 8px;
+  --radius: 12px;
+  --regime-color: var(--primary);
   font-family: "Aptos", "Helvetica Neue", Arial, sans-serif;
   background: var(--background);
   color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #0f172a;
+    --foreground: #e5edf7;
+    --card: #1e293b;
+    --card-foreground: #f8fafc;
+    --muted: #182235;
+    --muted-foreground: #94a3b8;
+    --border: #334155;
+    --primary: #2dd4bf;
+    --primary-foreground: #062923;
+    --accent: #fbbf24;
+    --accent-soft: rgba(251, 191, 36, 0.12);
+    --ring: rgba(45, 212, 191, 0.24);
+    --shadow: 0 18px 55px rgba(0, 0, 0, 0.34);
+  }
 }
 
 body {
@@ -143,6 +172,8 @@ body {
 main {
   max-width: 1220px;
   margin: 0 auto;
+  display: grid;
+  gap: 48px;
 }
 
 h1,
@@ -161,7 +192,7 @@ h1 {
   justify-content: space-between;
   gap: 24px;
   align-items: flex-start;
-  margin-bottom: 22px;
+  margin-bottom: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.84);
@@ -195,7 +226,7 @@ h1 {
   min-width: min(100%, 292px);
   padding: 10px;
   border: 1px solid rgba(15, 118, 110, 0.18);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.72);
 }
 
@@ -315,8 +346,9 @@ body.lang-zh [data-lang="zh"] {
 }
 
 h2 {
-  margin-top: 30px;
+  margin-top: 0;
   font-size: 18px;
+  letter-spacing: -0.02em;
   color: var(--foreground);
   display: flex;
   align-items: center;
@@ -336,6 +368,11 @@ h2::before {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
   margin-top: 0;
+}
+
+.dashboard-section {
+  display: grid;
+  gap: 14px;
 }
 
 .metric {
@@ -362,31 +399,150 @@ h2::before {
   overflow-wrap: anywhere;
 }
 
-.metric-regime .value [data-lang],
-.metric-action .value [data-lang] {
+.status-hero {
+  --confidence-value: 0;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.28fr);
+  gap: 22px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--regime-color) 28%, var(--border));
+  border-radius: calc(var(--radius) + 4px);
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--regime-color) 16%, transparent), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--regime-color) 9%, var(--card)), var(--card) 64%);
+  box-shadow: 0 0 80px -20px var(--regime-color), var(--shadow);
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.status-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  opacity: 0.32;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+}
+
+.hero-eyebrow {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-metric {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.hero-regime,
+.hero-action {
+  display: grid;
+  gap: 6px;
+}
+
+.hero-label {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hero-value [data-lang],
+.hero-value {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid rgba(15, 118, 110, 0.22);
+  width: fit-content;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, var(--regime-color) 35%, var(--border));
   border-radius: 999px;
-  background: rgba(15, 118, 110, 0.08);
-  color: var(--primary);
-  font-size: 14px;
+  background: color-mix(in srgb, var(--regime-color) 13%, var(--card));
+  color: var(--card-foreground);
+  font-size: 18px;
   font-weight: 800;
 }
 
-.metric-action .value [data-lang] {
-  border-color: rgba(180, 83, 9, 0.24);
+.hero-action .hero-value [data-lang] {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
   background: var(--accent-soft);
-  color: var(--accent);
 }
 
-body.lang-en .metric-regime .value [data-lang="zh"],
-body.lang-en .metric-action .value [data-lang="zh"],
-body.lang-zh .metric-regime .value [data-lang="en"],
-body.lang-zh .metric-action .value [data-lang="en"] {
+body.lang-en .hero-value [data-lang="zh"],
+body.lang-zh .hero-value [data-lang="en"] {
   display: none;
+}
+
+.confidence-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.confidence-mini-gauge {
+  width: 168px;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.confidence-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--muted-foreground) 22%, transparent);
+  stroke-width: 13;
+  stroke-linecap: round;
+}
+
+.confidence-arc {
+  fill: none;
+  stroke: var(--regime-color);
+  stroke-width: 13;
+  stroke-linecap: round;
+  pathLength: 100;
+  stroke-dasharray: var(--confidence-value) 100;
+  animation: confidence-fill 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.confidence-number {
+  color: var(--card-foreground);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.confidence-caption {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@keyframes confidence-fill {
+  from { stroke-dasharray: 0 100; }
+  to { stroke-dasharray: var(--confidence-value) 100; }
 }
 
 .gauge-grid {
@@ -401,6 +557,38 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   max-width: 540px;
   margin: 0 auto;
   display: block;
+}
+
+.gauge-segment-active {
+  filter: drop-shadow(0 0 4px var(--color));
+}
+
+.gauge-needle {
+  transform-origin: 120px 116px;
+  animation: needle-swing 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.gauge-hub-pulse {
+  fill: var(--regime-color);
+  opacity: 0.22;
+  transform-origin: 120px 116px;
+  animation: hub-breathe 1.8s ease-in-out infinite;
+}
+
+.gauge-hub {
+  fill: var(--regime-color);
+  stroke: var(--card);
+  stroke-width: 3;
+}
+
+@keyframes needle-swing {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--needle-rotation)); }
+}
+
+@keyframes hub-breathe {
+  0%, 100% { transform: scale(0.88); opacity: 0.18; }
+  50% { transform: scale(1.28); opacity: 0.34; }
 }
 
 .gauge-label {
@@ -469,8 +657,32 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
-.score-trend-panel[hidden] {
-  display: none;
+.score-trend-body {
+  position: relative;
+  display: grid;
+}
+
+.score-trend-panel {
+  grid-area: 1 / 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 260ms cubic-bezier(0.22, 1, 0.36, 1), visibility 260ms;
+}
+
+.score-trend-panel[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.score-trend-panel-enter {
+  animation: score-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes score-panel-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .score-trend-chart {
@@ -485,19 +697,19 @@ body.lang-zh .metric-action .value [data-lang="en"] {
 }
 
 .score-zone-panic {
-  fill: rgba(29, 78, 216, 0.12);
+  opacity: 0.82;
 }
 
 .score-zone-recovery {
-  fill: rgba(20, 184, 166, 0.10);
+  opacity: 0.78;
 }
 
 .score-zone-warm {
-  fill: rgba(250, 204, 21, 0.12);
+  opacity: 0.76;
 }
 
 .score-zone-overheated {
-  fill: rgba(220, 38, 38, 0.11);
+  opacity: 0.76;
 }
 
 .score-trend-axis {
@@ -521,6 +733,26 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   fill: var(--card);
   stroke: var(--primary);
   stroke-width: 2;
+  transition: r 180ms cubic-bezier(0.22, 1, 0.36, 1), stroke-width 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.score-crosshair {
+  stroke: var(--muted-foreground);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+  opacity: 0;
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.score-point-group:hover .score-trend-point,
+.score-point-group:focus .score-trend-point {
+  r: 5.6;
+  stroke-width: 2.6;
+}
+
+.score-point-group:hover .score-crosshair,
+.score-point-group:focus .score-crosshair {
+  opacity: 0.72;
 }
 
 .score-trend-label {
@@ -572,7 +804,7 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
-  margin-top: 14px;
+  margin-top: 0;
   padding: 20px;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
 }
@@ -614,12 +846,39 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   padding: 0;
 }
 
+.input-groups {
+  display: grid;
+  gap: 18px;
+}
+
+.input-group {
+  display: grid;
+  gap: 10px;
+}
+
+.input-group-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
 .input-grid li {
   list-style: none;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--muted);
   padding: 10px;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.input-item.input-trend-up {
+  animation: input-up-pulse 2.4s ease-in-out infinite;
+}
+
+.input-item.input-trend-down {
+  animation: input-down-pulse 2.4s ease-in-out infinite;
 }
 
 .input-key {
@@ -674,6 +933,16 @@ body.lang-zh .metric-action .value [data-lang="en"] {
 .trend-flat {
   background: rgba(100, 116, 139, 0.12);
   color: var(--muted-foreground);
+}
+
+@keyframes input-up-pulse {
+  0%, 100% { background: var(--muted); }
+  50% { background: color-mix(in srgb, #16a34a 10%, var(--muted)); }
+}
+
+@keyframes input-down-pulse {
+  0%, 100% { background: var(--muted); }
+  50% { background: color-mix(in srgb, #dc2626 10%, var(--muted)); }
 }
 
 .methodology {
@@ -799,6 +1068,10 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  .status-hero {
+    grid-template-columns: 1fr;
+  }
+
   .legend-item {
     grid-template-columns: 14px 1fr;
   }
@@ -823,6 +1096,16 @@ tbody tr:hover {
 
   .value {
     font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 """
@@ -862,7 +1145,14 @@ function updateCurrentTime() {
 
 function setScoreTrendRange(range) {
   for (const panel of document.querySelectorAll("[data-score-panel]")) {
-    panel.hidden = panel.dataset.scorePanel !== range;
+    const active = panel.dataset.scorePanel === range;
+    panel.dataset.active = active ? "true" : "false";
+    panel.setAttribute("aria-hidden", active ? "false" : "true");
+    if (active) {
+      panel.classList.remove("score-trend-panel-enter");
+      void panel.offsetWidth;
+      panel.classList.add("score-trend-panel-enter");
+    }
   }
   for (const button of document.querySelectorAll("[data-score-range]")) {
     button.setAttribute("aria-pressed", button.dataset.scoreRange === range ? "true" : "false");
@@ -942,8 +1232,17 @@ function panelToMarkdown(panel) {
   return normalizeMarkdownText(visibleText(panel));
 }
 
+function dashboardAnalysisPrompt() {
+  const hero = document.querySelector(".status-hero");
+  if (hero && hero.dataset.analysisPrompt) {
+    return hero.dataset.analysisPrompt;
+  }
+  const regime = hero && hero.dataset.regimeZh ? hero.dataset.regimeZh : normalizeMarkdownText(visibleText(document.querySelector(".hero-regime .hero-value")));
+  return "作为金融量化专家，请分析以下纳指100市场数据。重点关注最近 3 天的变量演变趋势，并对‘" + regime + "状态’下的定投策略给出风险提示。";
+}
+
 function buildDashboardMarkdown() {
-  const lines = [];
+  const lines = [dashboardAnalysisPrompt(), ""];
   const title = normalizeMarkdownText(visibleText(document.querySelector("h1")));
   if (title) {
     lines.push("# " + title);
@@ -970,7 +1269,7 @@ function buildDashboardMarkdown() {
     }
   }
 
-  for (const heading of document.querySelectorAll("main > h2")) {
+  for (const heading of document.querySelectorAll("main > .dashboard-section > h2")) {
     const title = normalizeMarkdownText(visibleText(heading));
     const panel = heading.nextElementSibling;
     if (!title || !panel || !panel.classList.contains("panel")) {
@@ -1072,6 +1371,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             "</div>",
             "</div>",
             "</div>",
+            _status_hero(summary),
             _summary_grid(summary),
             _section("Market State Gauge", _regime_gauge(summary)),
             _section("Composite Score Trend", _score_trend_html(daily, summary)),
@@ -1093,10 +1393,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
 def _summary_grid(summary: dict[str, Any]) -> str:
     metrics = [
         ("Current Time", _current_time_value(), "metric-time"),
-        ("Regime", _translated_regime_value(summary.get("market_regime", "")), "metric-regime"),
-        ("Action", _translated_value(summary.get("dashboard_action", "")), "metric-action"),
         ("Temperature", summary.get("temperature_score", ""), "metric-temperature"),
-        ("Confidence", summary.get("confidence_score", ""), "metric-confidence"),
     ]
     cards = [
         f'<div class="metric {class_name}">'
@@ -1106,6 +1403,63 @@ def _summary_grid(summary: dict[str, Any]) -> str:
         for label, value, class_name in metrics
     ]
     return f'<section class="summary">{"".join(cards)}</section>'
+
+
+def _status_hero(summary: dict[str, Any]) -> str:
+    regime = _format_value(summary.get("market_regime", "normal"))
+    active = _band_for_regime(regime)
+    color = active[4]
+    regime_en, regime_zh = _translated_regime_value(regime)
+    action = _translated_value(summary.get("dashboard_action", ""))
+    prompt = _analysis_prompt(regime_zh)
+    return (
+        f'<section class="status-hero" style="--regime-color:{color}" '
+        f'data-regime-zh="{escape(regime_zh)}" data-analysis-prompt="{escape(prompt)}">'
+        '<div class="hero-copy">'
+        f'<p class="hero-eyebrow">{_localized("Market State Gauge")}</p>'
+        '<ul class="hero-metrics">'
+        '<li class="hero-metric"><div class="hero-regime">'
+        f'<span class="hero-label">{_localized("Regime")}</span>'
+        f'<span class="hero-value">{_format_display_value((regime_en, regime_zh))}</span>'
+        "</div></li>"
+        '<li class="hero-metric"><div class="hero-action">'
+        f'<span class="hero-label">{_localized("Action")}</span>'
+        f'<span class="hero-value">{_format_display_value(action)}</span>'
+        "</div></li>"
+        "</ul>"
+        "</div>"
+        f'{_confidence_gauge(summary.get("confidence_score", ""))}'
+        "</section>"
+    )
+
+
+def _analysis_prompt(regime_zh: str) -> str:
+    return (
+        "作为金融量化专家，请分析以下纳指100市场数据。"
+        f"重点关注最近 3 天的变量演变趋势，并对‘{regime_zh}状态’下的定投策略给出风险提示。"
+    )
+
+
+def _confidence_gauge(value: Any) -> str:
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    if pd.isna(confidence):
+        confidence = 0.0
+    confidence = min(100.0, max(0.0, confidence))
+    display = _format_value(confidence)
+    return (
+        f'<div class="confidence-card" style="--confidence-value:{confidence:.2f}">'
+        '<svg class="confidence-mini-gauge" viewBox="0 0 140 92" role="img" '
+        f'aria-label="Confidence {display}">'
+        '<path class="confidence-track" pathLength="100" d="M 20 72 A 50 50 0 0 1 120 72"/>'
+        '<path class="confidence-arc" pathLength="100" d="M 20 72 A 50 50 0 0 1 120 72"/>'
+        "</svg>"
+        f'<span class="confidence-number">{escape(display)}</span>'
+        f'<span class="confidence-caption">{_localized("Confidence")}</span>'
+        "</div>"
+    )
 
 
 def _config_metadata_html(summary: dict[str, Any]) -> str:
@@ -1121,24 +1475,27 @@ def _regime_gauge(summary: dict[str, Any]) -> str:
     regime = _format_value(summary.get("market_regime", "normal"))
     active = _band_for_regime(regime)
     active_midpoint = (active[2] + active[3]) / 2.0
-    needle_angle = 180.0 - active_midpoint * 1.8
-    needle_x, needle_y = _polar(120.0, 116.0, 76.0, needle_angle)
-    segments = "".join(_gauge_segment(band) for band in REGIME_BANDS)
+    needle_rotation = active_midpoint * 1.8
+    segments = "".join(_gauge_segment(band, regime) for band in REGIME_BANDS)
     legend = "".join(_legend_item(band, regime) for band in REGIME_BANDS)
     active_label = escape(active[1])
     active_label_zh = escape(ZH_TEXT.get(active[1], active[1]))
+    active_color = active[4]
     return (
-        '<div class="gauge-grid">'
+        f'<div class="gauge-grid" style="--regime-color:{active_color}">'
         '<svg class="regime-gauge" viewBox="0 0 240 172" role="img" '
         'aria-labelledby="gauge-title gauge-desc">'
         '<title id="gauge-title">Market regime gauge</title>'
         f'<desc id="gauge-desc">Current market regime is {active_label} / {active_label_zh}.</desc>'
-        '<path d="M 20 116 A 100 100 0 0 1 220 116" fill="none" stroke="#e3e8ef" '
+        '<path d="M 20 116 A 100 100 0 0 1 220 116" fill="none" stroke="var(--border)" '
         'stroke-width="18" stroke-linecap="round"/>'
         f"{segments}"
-        f'<line x1="120" y1="116" x2="{needle_x:.2f}" y2="{needle_y:.2f}" '
-        'stroke="#18202a" stroke-width="4" stroke-linecap="round"/>'
-        '<circle cx="120" cy="116" r="7" fill="#18202a"/>'
+        f'<g class="gauge-needle" style="--needle-rotation:{needle_rotation:.2f}deg">'
+        '<line x1="120" y1="116" x2="44" y2="116" stroke="var(--foreground)" '
+        'stroke-width="4" stroke-linecap="round"/>'
+        "</g>"
+        '<circle class="gauge-hub-pulse" cx="120" cy="116" r="12"/>'
+        '<circle class="gauge-hub" cx="120" cy="116" r="7"/>'
         f'{_localized_svg_text(active[1], x=120, y=154, class_name="gauge-label")}'
         f'{_localized_svg_text("current regime", x=120, y=166, class_name="gauge-sub")}'
         "</svg>"
@@ -1173,7 +1530,7 @@ def _score_trend_html(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
         f'{_localized("Year")}</button>'
         "</div>"
         "</div>"
-        f"{panels}"
+        f'<div class="score-trend-body">{panels}</div>'
         "</div>"
     )
 
@@ -1183,8 +1540,9 @@ def _score_trend_panel(daily: pd.DataFrame, summary: dict[str, Any], key: str, d
     if rows.empty:
         return ""
     return (
-        f'<div class="score-trend-panel" data-score-panel="{key}"'
-        f'{" hidden" if key != "week" else ""}>'
+        f'<div class="score-trend-panel score-trend-panel-enter" data-score-panel="{key}" '
+        f'data-active="{"true" if key == "week" else "false"}" '
+        f'aria-hidden="{"false" if key == "week" else "true"}">'
         f"{_score_trend_svg(rows, key)}"
         "</div>"
     )
@@ -1232,9 +1590,11 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
     path = _svg_line_path([(x, y) for x, y, _, _ in points])
     area = _svg_area_path([(x, y) for x, y, _, _ in points], top + plot_height)
     circles = "".join(
-        f'<circle class="score-trend-point" cx="{x:.2f}" cy="{y:.2f}" r="3.2">'
-        f"<title>{date.date().isoformat()}: {score:.2f}</title>"
-        "</circle>"
+        '<g class="score-point-group" tabindex="0">'
+        f'<title>{date.date().isoformat()}: {score:.2f}</title>'
+        f'<line class="score-crosshair" x1="{x:.2f}" y1="{top:.2f}" x2="{x:.2f}" y2="{top + plot_height:.2f}"/>'
+        f'<circle class="score-trend-point" cx="{x:.2f}" cy="{y:.2f}" r="3.2"/>'
+        "</g>"
         for x, y, date, score in _sample_points(points)
     )
     y_grid = "".join(
@@ -1249,7 +1609,7 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
         ]
     )
     zones = "".join(
-        _score_zone_rect(class_name, start, end, left, width - right, top, plot_height)
+        _score_zone_rect(class_name, range_key, start, end, left, width - right, top, plot_height)
         for class_name, start, end in [
             ("score-zone-panic", 0.0, 35.0),
             ("score-zone-recovery", 35.0, 65.0),
@@ -1274,6 +1634,7 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
         f'<svg class="score-trend-chart" viewBox="0 0 {width:.0f} {height:.0f}" '
         f'role="img" aria-label="{title}">'
         f"<title>{title}</title>"
+        f"{_score_zone_defs(range_key)}"
         f"{zones}"
         f"{y_grid}"
         f'<line class="score-trend-axis" x1="{left:.0f}" y1="{top + plot_height:.0f}" '
@@ -1287,6 +1648,7 @@ def _score_trend_svg(rows: pd.DataFrame, range_key: str) -> str:
 
 def _score_zone_rect(
     class_name: str,
+    range_key: str,
     start_score: float,
     end_score: float,
     left: float,
@@ -1296,10 +1658,30 @@ def _score_zone_rect(
 ) -> str:
     y_top = top + plot_height * (100.0 - end_score) / 100.0
     y_bottom = top + plot_height * (100.0 - start_score) / 100.0
+    gradient_id = f"{class_name}-{range_key}"
     return (
-        f'<rect class="{class_name}" x="{left:.0f}" y="{y_top:.2f}" '
+        f'<rect class="{class_name}" fill="url(#{gradient_id})" x="{left:.0f}" y="{y_top:.2f}" '
         f'width="{right - left:.0f}" height="{y_bottom - y_top:.2f}"/>'
     )
+
+
+def _score_zone_defs(range_key: str) -> str:
+    zones = [
+        ("score-zone-panic", "#1d4ed8", 0.08, 0.18),
+        ("score-zone-recovery", "#14b8a6", 0.06, 0.15),
+        ("score-zone-warm", "#facc15", 0.07, 0.16),
+        ("score-zone-overheated", "#dc2626", 0.07, 0.17),
+    ]
+    gradients = []
+    for class_name, color, start_opacity, end_opacity in zones:
+        gradient_id = f"{class_name}-{range_key}"
+        gradients.append(
+            f'<linearGradient id="{gradient_id}" x1="0" x2="1" y1="0" y2="0">'
+            f'<stop offset="0%" stop-color="{color}" stop-opacity="{start_opacity:.2f}"/>'
+            f'<stop offset="100%" stop-color="{color}" stop-opacity="{end_opacity:.2f}"/>'
+            "</linearGradient>"
+        )
+    return f"<defs>{''.join(gradients)}</defs>"
 
 
 def _svg_line_path(points: list[tuple[float, float]]) -> str:
@@ -1341,13 +1723,15 @@ def _band_for_regime(regime: str) -> tuple[str, str, int, int, str, str]:
     raise ValueError("normal regime band is not configured")
 
 
-def _gauge_segment(band: tuple[str, str, int, int, str, str]) -> str:
-    _, label, start, end, color, _ = band
+def _gauge_segment(band: tuple[str, str, int, int, str, str], current_regime: str) -> str:
+    key, label, start, end, color, _ = band
     start_angle = 180.0 - start * 1.8
     end_angle = 180.0 - end * 1.8
     d = _arc_path(120.0, 116.0, 100.0, start_angle, end_angle)
+    active_class = " gauge-segment-active" if key == current_regime else ""
     return (
-        f'<path d="{d}" fill="none" stroke="{color}" stroke-width="18" '
+        f'<path class="gauge-segment{active_class}" style="--color:{color}" '
+        f'd="{d}" fill="none" stroke="{color}" stroke-width="18" '
         f'stroke-linecap="butt" aria-label="{escape(label)}"/>'
     )
 
@@ -1376,7 +1760,7 @@ def _polar(cx: float, cy: float, radius: float, angle: float) -> tuple[float, fl
 
 
 def _section(title: str, body: str) -> str:
-    return f"<h2>{_localized(title)}</h2><section class=\"panel\">{body}</section>"
+    return f'<div class="dashboard-section"><h2>{_localized(title)}</h2><section class="panel">{body}</section></div>'
 
 
 def _paragraph(value: Any) -> str:
@@ -1529,17 +1913,38 @@ def _input_grid(values: Any, previous_values: dict[str, Any] | None = None) -> s
     if not isinstance(values, dict) or not values:
         return "<p>None</p>"
     previous_values = previous_values or {}
-    items = "".join(
-        '<li>'
+    grouped_keys = {key for _, _, keys in INPUT_GROUPS for key in keys}
+    groups: list[tuple[str, str, list[tuple[str, Any]]]] = []
+    for title_en, title_zh, keys in INPUT_GROUPS:
+        rows = [(key, values[key]) for key in keys if key in values]
+        if rows:
+            groups.append((title_en, title_zh, rows))
+    other_rows = [(str(key), value) for key, value in values.items() if str(key) not in grouped_keys]
+    if other_rows:
+        groups.append(("Other", "其他", other_rows))
+
+    group_html = "".join(
+        '<div class="input-group">'
+        f'<h3 class="input-group-title">{_localized_pair(title_en, title_zh)}</h3>'
+        f'<ul class="input-grid">{"".join(_input_item(key, value, previous_values.get(str(key))) for key, value in rows)}</ul>'
+        "</div>"
+        for title_en, title_zh, rows in groups
+    )
+    return f'<div class="input-groups">{group_html}</div>'
+
+
+def _input_item(key: str, value: Any, previous: Any) -> str:
+    trend = _input_trend(value, previous)
+    trend_class = f" input-trend-{trend}" if trend in {"up", "down"} else ""
+    return (
+        f'<li class="input-item{trend_class}">'
         f'<span class="input-key">{escape(str(key))}</span>'
         '<span class="input-value-row">'
         f'<span class="input-value">{escape(_format_value(value))}</span>'
-        f'{_input_trend_html(value, previous_values.get(str(key)))}'
+        f'{_input_trend_badge(trend)}'
         "</span>"
         "</li>"
-        for key, value in values.items()
     )
-    return f'<ul class="input-grid">{items}</ul>'
 
 
 def _previous_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
@@ -1558,6 +1963,10 @@ def _previous_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
 
 def _input_trend_html(current: Any, previous: Any) -> str:
     trend = _input_trend(current, previous)
+    return _input_trend_badge(trend)
+
+
+def _input_trend_badge(trend: str | None) -> str:
     if trend is None:
         return ""
     labels = {
