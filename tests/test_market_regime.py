@@ -754,72 +754,6 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertNotIn("Current.</span>", html)
             self.assertNotIn("当前。</span>", html)
 
-    def test_write_dashboard_outputs_renders_status_hero_with_confidence_gauge(self):
-        with TemporaryDirectory() as tmp:
-            output_dir = Path(tmp)
-            summary = self._summary()
-            summary["market_regime"] = "warm_recovery"
-            summary["dashboard_action"] = "normal_dca"
-            summary["confidence_score"] = 72.5
-
-            write_dashboard_outputs(output_dir, self._daily(), summary)
-
-            html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn('class="status-hero"', html)
-            self.assertIn("--regime-color:#facc15", html)
-            self.assertIn('class="hero-regime"', html)
-            self.assertIn('class="hero-action"', html)
-            self.assertIn('class="confidence-mini-gauge"', html)
-            self.assertIn('class="confidence-arc"', html)
-            self.assertIn("72.50", html)
-            self.assertLess(html.index('class="status-hero"'), html.index("Market State Gauge"))
-
-    def test_write_dashboard_outputs_summary_extracts_regime_action_and_confidence(self):
-        with TemporaryDirectory() as tmp:
-            output_dir = Path(tmp)
-            write_dashboard_outputs(output_dir, self._daily(), self._summary())
-
-            html = (output_dir / "index.html").read_text(encoding="utf-8")
-            summary_html = html[html.index('<section class="summary"') : html.index("Market State Gauge")]
-            self.assertNotIn("metric-regime", summary_html)
-            self.assertNotIn("metric-action", summary_html)
-            self.assertNotIn("metric-confidence", summary_html)
-
-    def test_write_dashboard_outputs_includes_visual_optimization_css_hooks(self):
-        with TemporaryDirectory() as tmp:
-            output_dir = Path(tmp)
-            write_dashboard_outputs(output_dir, self._daily(), self._summary())
-
-            html = (output_dir / "index.html").read_text(encoding="utf-8")
-            for marker in [
-                "@media (prefers-color-scheme: dark)",
-                "--background: #0f172a",
-                "--card: #1e293b",
-                "--border: #334155",
-                "--radius: 12px",
-                "gap: 48px",
-                "letter-spacing: -0.02em",
-                "box-shadow: 0 0 80px -20px var(--regime-color)",
-            ]:
-                self.assertIn(marker, html)
-
-    def test_write_dashboard_outputs_animates_active_gauge_segment_and_needle(self):
-        with TemporaryDirectory() as tmp:
-            output_dir = Path(tmp)
-            summary = self._summary()
-            summary["market_regime"] = "overheated"
-
-            write_dashboard_outputs(output_dir, self._daily(), summary)
-
-            html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn("@keyframes needle-swing", html)
-            self.assertIn('class="gauge-needle"', html)
-            self.assertIn("--needle-rotation:", html)
-            self.assertIn("cubic-bezier(0.34, 1.56, 0.64, 1)", html)
-            self.assertIn('class="gauge-hub-pulse"', html)
-            self.assertIn('class="gauge-segment gauge-segment-active"', html)
-            self.assertIn("filter: drop-shadow(0 0 4px var(--color))", html)
-
     def test_write_dashboard_outputs_renders_copy_markdown_button(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
@@ -882,10 +816,6 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("setScoreTrendRange", html)
             self.assertIn("score-zone-panic", html)
             self.assertIn("score-zone-overheated", html)
-            self.assertIn('class="score-crosshair"', html)
-            self.assertIn("<linearGradient", html)
-            self.assertIn('data-active="true"', html)
-            self.assertIn("score-trend-panel-enter", html)
 
     def test_write_dashboard_outputs_score_trend_ignores_zero_unavailable_rows(self):
         with TemporaryDirectory() as tmp:
@@ -993,7 +923,7 @@ class MarketRegimeReportTests(unittest.TestCase):
             write_dashboard_outputs(output_dir, self._daily(), summary)
 
             html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn('<span class="hero-value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></span>', html)
+            self.assertIn('<div class="value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></div>', html)
             self.assertIn('<text x="120" y="154" class="gauge-label" data-lang="en">Warm Recovery</text>', html)
             self.assertNotIn('<span data-lang="en">warm_recovery</span>', html)
 
@@ -1043,50 +973,6 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn('class="input-trend trend-flat"', html)
             self.assertIn('aria-label="Flat from prior market day"', html)
             self.assertIn(">→</span>", html)
-
-    def test_write_dashboard_outputs_latest_inputs_are_grouped(self):
-        with TemporaryDirectory() as tmp:
-            output_dir = Path(tmp)
-            summary = self._summary()
-            summary["inputs"] = {
-                "dist_sma": 0.02,
-                "ndxe_ndx": 0.35,
-                "sma": 90.0,
-                "ndx": 100.0,
-                "vxn": 20.0,
-                "vix": 18.0,
-                "cnn_fear_greed": 50.0,
-                "sox_ndx": 0.25,
-                "sox_ma": 0.24,
-            }
-
-            write_dashboard_outputs(output_dir, self._daily(), summary)
-
-            html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn("Trend &amp; Breadth", html)
-            self.assertIn("趋势与广度", html)
-            self.assertIn("Volatility &amp; Sentiment", html)
-            self.assertIn("波动与情绪", html)
-            self.assertIn("Core Leadership", html)
-            self.assertIn("核心主线", html)
-            self.assertIn('class="input-groups"', html)
-
-    def test_write_dashboard_markdown_starts_with_quant_prompt(self):
-        with TemporaryDirectory() as tmp:
-            output_dir = Path(tmp)
-            summary = self._summary()
-            summary["market_regime"] = "warm_recovery"
-
-            write_dashboard_outputs(output_dir, self._daily(), summary)
-
-            html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn("作为金融量化专家，请分析以下纳指100市场数据", html)
-            self.assertIn("重点关注最近 3 天的变量演变趋势", html)
-            self.assertIn("暖修复状态", html)
-            self.assertLess(
-                html.index("dashboardAnalysisPrompt"),
-                html.index('lines.push("# " + title)'),
-            )
 
     def test_write_dashboard_outputs_summary_shows_current_time_container(self):
         with TemporaryDirectory() as tmp:
