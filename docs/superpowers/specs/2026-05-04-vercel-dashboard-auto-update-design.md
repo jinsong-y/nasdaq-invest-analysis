@@ -9,6 +9,7 @@
 In scope:
 
 - Deploy `reports/market_regime/*` as the public static dashboard.
+- Keep the public dashboard bilingual in Chinese and English.
 - Run a daily GitHub Actions workflow after the US market close.
 - Fetch source market data with the existing fail-fast pipeline.
 - Generate the latest market regime dashboard.
@@ -44,6 +45,8 @@ The whole `reports/` directory is large because it contains many historical run 
 
 The current data fetcher is intentionally strict. Empty payloads, malformed JSON, unexpected columns, and missing required fields fail the run instead of silently replacing data.
 
+The current dashboard already includes Chinese and English interface text with a language toggle. The deployment workflow must preserve that bilingual output. The public Vercel copy should be byte-for-byte synced from `reports/market_regime/*` rather than rewritten by the workflow.
+
 ## Recommended Architecture
 
 Use GitHub Actions as the daily data/update worker and Vercel as a static host.
@@ -77,6 +80,8 @@ public/
 The workflow copies `reports/market_regime/*` into `public/` after each successful dashboard generation.
 
 Vercel should deploy `public/` as the output directory. It should not build or serve the entire repository. This keeps the deployment small and avoids uploading the large historical `reports/` tree.
+
+The deployed `public/index.html` must retain the dashboard's Chinese and English text and language toggle. No deploy-time transform should strip embedded CSS, JavaScript, or localized labels.
 
 ## Daily Schedule
 
@@ -185,6 +190,7 @@ Before committing, validate:
 - `reports/market_regime/latest.json` exists and includes `as_of_date`.
 - `reports/market_regime/daily_regimes.csv` exists and is non-empty.
 - `public/index.html`, `public/latest.json`, and `public/daily_regimes.csv` exist and are non-empty after sync.
+- `public/index.html` includes both language variants and the language toggle controls.
 - The snapshot directory for the latest market date contains processed data, manifest, and raw source files.
 
 The workflow should fail if any validation fails.
@@ -223,6 +229,7 @@ Implementation should add tests or script-level checks for:
 - No-op decision when latest fetched date is equal to or older than latest published date.
 - Snapshot directory creation and required-file validation.
 - Public directory sync.
+- Bilingual dashboard markers in `public/index.html`, including Chinese labels, English labels, and language toggle controls.
 
 Manual verification should include:
 
@@ -249,4 +256,5 @@ The chosen v1 behavior is:
 - Direct commit to the deployment branch.
 - Store dated snapshots by latest market date.
 - Publish only `reports/market_regime/*` through `public/`.
+- Preserve Chinese and English dashboard UI in the deployed static HTML.
 - Treat non-trading days as successful no-op runs.
