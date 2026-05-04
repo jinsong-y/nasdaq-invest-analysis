@@ -156,7 +156,7 @@ def validate_public_outputs(public_dir: Path, market_date: str) -> None:
 
 
 def run_update(root: Path, *, fetch: bool) -> bool:
-    root = root.resolve()
+    root = Path(root)
     data_path = root / "data" / "processed" / "market_indicators.csv"
     latest_json_path = root / "reports" / "market_regime" / "latest.json"
     snapshots_dir = root / "data" / "snapshots"

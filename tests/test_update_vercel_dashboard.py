@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import csv
 import json
 import sys
@@ -86,6 +88,20 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
 
+    def _write_minimal_root(self, root: Path, *, market_date: str, published_date: str | None) -> None:
+        self._write_file(
+            root / "data" / "processed" / "market_indicators.csv",
+            f"date,ndx\n{market_date},100\n",
+        )
+        self._write_file(root / "data" / "processed" / "data_manifest.json", '{"ok": true}\n')
+        self._write_file(root / "data" / "raw" / "fred" / "NASDAQ100.csv", "observation_date,NASDAQ100\n")
+        self._write_file(root / "data" / "raw" / "cnn" / "fear_greed_live.json", '{"score": 50}\n')
+        if published_date is not None:
+            self._write_file(
+                root / "reports" / "market_regime" / "latest.json",
+                json.dumps({"as_of_date": published_date}),
+            )
+
     def _write_generated_dashboard(self, root: Path, market_date: str) -> None:
         html = (
             "<!doctype html><title>Market Regime Dashboard</title>"
@@ -97,6 +113,59 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
         self._write_file(root / "reports" / "market_regime" / "index.html", html)
         self._write_file(root / "reports" / "market_regime" / "latest.json", json.dumps({"as_of_date": market_date}))
         self._write_file(root / "reports" / "market_regime" / "daily_regimes.csv", "date,market_regime\n")
+
+    def test_run_update_noops_when_latest_date_already_published(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-04")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command") as run_command:
+                published = update_vercel_dashboard.run_update(root, fetch=False)
+
+            self.assertFalse(published)
+            run_command.assert_not_called()
+            self.assertFalse((root / "public").exists())
+            self.assertFalse((root / "data" / "snapshots" / "2026-05-04").exists())
+
+    def test_run_update_publishes_when_fetched_date_is_newer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-03")
+
+            def fake_run_command(args, *, cwd):
+                self.assertEqual(root, cwd)
+                if args[-1] == "scripts/run_market_regime_dashboard.py":
+                    self._write_generated_dashboard(root, "2026-05-04")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
+                published = update_vercel_dashboard.run_update(root, fetch=False)
+
+            self.assertTrue(published)
+            self.assertEqual(1, run_command.call_count)
+            self.assertTrue((root / "public" / "index.html").is_file())
+            self.assertTrue((root / "data" / "snapshots" / "2026-05-04" / "market_indicators.csv").is_file())
+
+    def test_run_update_fetches_before_date_detection_when_requested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-03")
+
+            def fake_run_command(args, *, cwd):
+                self.assertEqual(root, cwd)
+                if args[-1] == "scripts/run_market_regime_dashboard.py":
+                    self._write_generated_dashboard(root, "2026-05-04")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
+                published = update_vercel_dashboard.run_update(root, fetch=True)
+
+            self.assertTrue(published)
+            self.assertEqual(
+                [
+                    [sys.executable, "scripts/fetch_data.py"],
+                    [sys.executable, "scripts/run_market_regime_dashboard.py"],
+                ],
+                [call.args[0] for call in run_command.call_args_list],
+            )
 
     def test_run_update_does_not_mutate_public_when_snapshot_validation_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -114,7 +183,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             )
 
             def fake_run_command(args, *, cwd):
-                self.assertEqual(root.resolve(), cwd)
+                self.assertEqual(root, cwd)
                 self.assertEqual([sys.executable, "scripts/run_market_regime_dashboard.py"], args)
                 self._write_generated_dashboard(root, "2026-05-04")
 
