@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -61,6 +63,8 @@ class UpdateDashboardDateTests(unittest.TestCase):
                         "vxn": "20",
                         "vix": "15",
                         "cnn_fear_greed": "50",
+                        "ndxe": "95",
+                        "sox": "40",
                         "ndxe_ndx": "0.95",
                         "sox_ndx": "0.40",
                     },
@@ -70,6 +74,8 @@ class UpdateDashboardDateTests(unittest.TestCase):
                         "vxn": "",
                         "vix": "",
                         "cnn_fear_greed": "51",
+                        "ndxe": "96",
+                        "sox": "41",
                         "ndxe_ndx": "0.96",
                         "sox_ndx": "0.41",
                     },
@@ -79,6 +85,74 @@ class UpdateDashboardDateTests(unittest.TestCase):
             result = update_vercel_dashboard.latest_publishable_market_date(path)
 
         self.assertEqual("2026-04-30", result)
+
+    def test_latest_publishable_market_date_fails_on_bad_date_even_when_row_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "market_indicators.csv"
+            self._write_dashboard_market_csv(
+                path,
+                [
+                    {
+                        "date": "2026-04-30",
+                        "ndx": "100",
+                        "vxn": "20",
+                        "vix": "15",
+                        "cnn_fear_greed": "50",
+                        "ndxe": "95",
+                        "sox": "40",
+                        "ndxe_ndx": "0.95",
+                        "sox_ndx": "0.40",
+                    },
+                    {
+                        "date": "bad-date",
+                        "ndx": "101",
+                        "vxn": "",
+                        "vix": "",
+                        "cnn_fear_greed": "51",
+                        "ndxe": "96",
+                        "sox": "41",
+                        "ndxe_ndx": "0.96",
+                        "sox_ndx": "0.41",
+                    },
+                ],
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "invalid date"):
+                update_vercel_dashboard.latest_publishable_market_date(path)
+
+    def test_latest_publishable_market_date_fails_on_bad_nonblank_required_value_even_when_row_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "market_indicators.csv"
+            self._write_dashboard_market_csv(
+                path,
+                [
+                    {
+                        "date": "2026-04-30",
+                        "ndx": "100",
+                        "vxn": "20",
+                        "vix": "15",
+                        "cnn_fear_greed": "50",
+                        "ndxe": "95",
+                        "sox": "40",
+                        "ndxe_ndx": "0.95",
+                        "sox_ndx": "0.40",
+                    },
+                    {
+                        "date": "2026-05-01",
+                        "ndx": "101",
+                        "vxn": "",
+                        "vix": "bad",
+                        "cnn_fear_greed": "51",
+                        "ndxe": "96",
+                        "sox": "41",
+                        "ndxe_ndx": "0.96",
+                        "sox_ndx": "0.41",
+                    },
+                ],
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "invalid dashboard value"):
+                update_vercel_dashboard.latest_publishable_market_date(path)
 
     def test_latest_publishable_market_date_fails_when_required_column_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -160,7 +234,17 @@ class UpdateDashboardDateTests(unittest.TestCase):
 
     def _write_dashboard_market_csv(self, path: Path, rows: list[dict[str, str]]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        fieldnames = ["date", "ndx", "vxn", "vix", "cnn_fear_greed", "ndxe_ndx", "sox_ndx"]
+        fieldnames = [
+            "date",
+            "ndx",
+            "vxn",
+            "vix",
+            "cnn_fear_greed",
+            "ndxe",
+            "sox",
+            "ndxe_ndx",
+            "sox_ndx",
+        ]
         with path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=fieldnames)
             writer.writeheader()
@@ -207,10 +291,14 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-04")
 
             with mock.patch.object(update_vercel_dashboard, "run_command") as run_command:
-                published = update_vercel_dashboard.run_update(root, fetch=False)
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    published = update_vercel_dashboard.run_update(root, fetch=False)
 
             self.assertFalse(published)
             run_command.assert_not_called()
+            self.assertIn("Latest publishable: 2026-05-04", output.getvalue())
+            self.assertIn("PUBLISHED=false", output.getvalue())
             self.assertFalse((root / "public").exists())
             self.assertFalse((root / "data" / "snapshots" / "2026-05-04").exists())
 
@@ -231,10 +319,14 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             )
 
             with mock.patch.object(update_vercel_dashboard, "run_command") as run_command:
-                published = update_vercel_dashboard.run_update(root, fetch=False)
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    published = update_vercel_dashboard.run_update(root, fetch=False)
 
             self.assertFalse(published)
             run_command.assert_not_called()
+            self.assertIn("Latest publishable: 2026-04-30", output.getvalue())
+            self.assertIn("PUBLISHED=false", output.getvalue())
             self.assertFalse((root / "public").exists())
 
     def test_run_update_publishes_when_fetched_date_is_newer(self):

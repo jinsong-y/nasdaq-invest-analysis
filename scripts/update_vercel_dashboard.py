@@ -13,7 +13,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORT_FILES = ("index.html", "latest.json", "daily_regimes.csv")
-REQUIRED_DASHBOARD_COLUMNS = (
+# Columns needed to publish the dashboard for a market date. The full loader
+# schema can contain additional columns that are not publishability gates.
+REQUIRED_PUBLISHABLE_COLUMNS = (
     "ndx",
     "vxn",
     "vix",
@@ -65,7 +67,7 @@ def latest_publishable_market_date(path: Path) -> str:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         fieldnames = reader.fieldnames or []
-        required = ("date", *REQUIRED_DASHBOARD_COLUMNS)
+        required = ("date", *REQUIRED_PUBLISHABLE_COLUMNS)
         missing = [column for column in required if column not in fieldnames]
         if missing:
             fail(f"missing required dashboard columns in {path}: {', '.join(missing)}")
@@ -73,8 +75,22 @@ def latest_publishable_market_date(path: Path) -> str:
             value = (row.get("date") or "").strip()
             if not value:
                 continue
-            if all((row.get(column) or "").strip() for column in REQUIRED_DASHBOARD_COLUMNS):
-                dates.append(parse_market_date(value))
+            market_date = parse_market_date(value)
+            complete = True
+            for column in REQUIRED_PUBLISHABLE_COLUMNS:
+                dashboard_value = (row.get(column) or "").strip()
+                if not dashboard_value:
+                    complete = False
+                    continue
+                try:
+                    float(dashboard_value)
+                except ValueError:
+                    fail(
+                        f"invalid dashboard value for {column} on {market_date}: "
+                        f"{dashboard_value!r}"
+                    )
+            if complete:
+                dates.append(market_date)
     if not dates:
         fail(f"no publishable market dates found in {path}")
     return max(dates)
@@ -98,12 +114,12 @@ def latest_published_date(latest_json_path: Path, snapshots_dir: Path) -> str | 
     return max(dates) if dates else None
 
 
-def should_publish(fetched_date: str, published_date: str | None) -> bool:
-    fetched = parse_market_date(fetched_date)
+def should_publish(publishable_date: str, published_date: str | None) -> bool:
+    publishable = parse_market_date(publishable_date)
     if published_date is None:
         return True
     published = parse_market_date(published_date)
-    return fetched > published
+    return publishable > published
 
 
 def assert_non_empty_file(path: Path) -> None:
@@ -196,11 +212,11 @@ def run_update(root: Path, *, fetch: bool) -> bool:
     if fetch:
         run_command([sys.executable, "scripts/fetch_data.py"], cwd=root)
 
-    fetched_date = latest_publishable_market_date(data_path)
+    publishable_date = latest_publishable_market_date(data_path)
     published_date = latest_published_date(latest_json_path, snapshots_dir)
-    if not should_publish(fetched_date, published_date):
+    if not should_publish(publishable_date, published_date):
         print(
-            f"No new market date. Latest fetched: {fetched_date}. "
+            f"No new market date. Latest publishable: {publishable_date}. "
             f"Latest published: {published_date}."
         )
         print("PUBLISHED=false")
@@ -211,15 +227,15 @@ def run_update(root: Path, *, fetch: bool) -> bool:
             sys.executable,
             "scripts/run_market_regime_dashboard.py",
             "--target-date",
-            fetched_date,
+            publishable_date,
         ],
         cwd=root,
     )
-    snapshot_dir = write_data_snapshot(root, fetched_date)
+    snapshot_dir = write_data_snapshot(root, publishable_date)
     validate_snapshot(snapshot_dir)
     sync_dashboard_to_public(report_dir, public_dir)
-    validate_public_outputs(public_dir, fetched_date)
-    print(f"Published market regime dashboard for {fetched_date}.")
+    validate_public_outputs(public_dir, publishable_date)
+    print(f"Published market regime dashboard for {publishable_date}.")
     print("PUBLISHED=true")
     return True
 
