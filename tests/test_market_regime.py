@@ -1071,8 +1071,14 @@ class MarketRegimeWorkflowTests(unittest.TestCase):
             self.assertIn("recommended robustness config", (output_dir / "index.html").read_text(encoding="utf-8"))
 
     def test_run_workflow_fails_fast_for_latest_missing_volatility(self):
-        from scripts.run_market_regime_dashboard import run_workflow
+        from scripts.run_market_regime_dashboard import DATA_PATH, run_workflow
 
         with TemporaryDirectory() as tmp:
-            with self.assertRaisesRegex(ValueError, "2026-05-01.*vix.*vxn"):
-                run_workflow(output_dir=Path(tmp), target_date="2026-05-01")
+            root = Path(tmp)
+            data_path = root / "market_indicators.csv"
+            data = pd.read_csv(DATA_PATH)
+            data.loc[data["date"] == "2026-04-30", ["vix", "vxn"]] = pd.NA
+            data.to_csv(data_path, index=False)
+
+            with self.assertRaisesRegex(ValueError, "2026-04-30.*vix.*vxn"):
+                run_workflow(output_dir=root / "dashboard", data_path=data_path, target_date="2026-04-30")
