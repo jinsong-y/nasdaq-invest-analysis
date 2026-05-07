@@ -1,8 +1,8 @@
 {
-  "as_of_date": "2026-05-05",
+  "as_of_date": "2026-05-06",
   "market_regime": "warm_recovery",
-  "temperature_score": 66.04062679482627,
-  "confidence_score": 92.54393865000667,
+  "temperature_score": 67.26197117433054,
+  "confidence_score": 90.99824678783432,
   "dashboard_action": "normal_dca",
   "summary": "Repair signals are strong, but conditions are already warm.",
   "drivers": [
@@ -14,18 +14,18 @@
     "no_major_extreme"
   ],
   "inputs": {
-    "cnn_fear_greed": 67.0,
-    "cnn_ma5": 65.0,
-    "dist_sma": 0.11591668262067789,
-    "ndx": 28015.06,
-    "ndxe_ma": 0.3447169441877551,
-    "ndxe_ndx": 0.3356030649,
-    "sma": 25104.97462427746,
-    "sox_ma": 0.3393870539510204,
-    "sox_ndx": 0.3919527568,
-    "vix": 17.38,
+    "cnn_fear_greed": 68.0,
+    "cnn_ma5": 65.8,
+    "dist_sma": 0.13786470650815708,
+    "ndx": 28599.17,
+    "ndxe_ma": 0.3444284080183673,
+    "ndxe_ndx": 0.3329925309,
+    "sma": 25134.06895953757,
+    "sox_ma": 0.3407515322040816,
+    "sox_ndx": 0.4011567469,
+    "vix": 17.39,
     "vix_pctile": 0.45169082125603865,
-    "vxn": 22.46,
-    "vxn_pctile": 0.5354200988467874
+    "vxn": 23.58,
+    "vxn_pctile": 0.5996705107084019
   }
 }
