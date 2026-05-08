@@ -32,6 +32,7 @@ GITHUB_REPO_URL = "https://github.com/jinsong-y/nasdaq-invest-analysis"
 ZH_TEXT = {
     "Nasdaq 100 Market Regime Dashboard": "纳指100市场状态仪表盘",
     "Finance-tech market monitor": "金融科技市场监测",
+    "Market State": "市场状态指针",
     "Market State Gauge": "市场状态指针",
     "Composite Score Trend": "综合评分曲线",
     "Summary": "摘要",
@@ -158,8 +159,8 @@ h1 {
 }
 
 .topbar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(250px, 360px) auto;
   gap: 24px;
   align-items: flex-start;
   margin-bottom: 22px;
@@ -181,6 +182,65 @@ h1 {
   color: var(--muted-foreground);
   font-size: 14px;
   line-height: 1.45;
+}
+
+.header-regime-slider {
+  --state-pos: 50%;
+  --state-color: var(--primary);
+  display: grid;
+  gap: 10px;
+  align-self: stretch;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--state-color) 34%, var(--border));
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.72)),
+    color-mix(in srgb, var(--state-color) 8%, var(--card));
+  padding: 13px 14px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.header-regime-label {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.header-regime-value {
+  color: var(--foreground);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+.header-regime-track {
+  position: relative;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #bfdbfe 0 26%, #99f6e4 26% 58%, #fde68a 58% 78%, #fecaca 78% 100%);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.header-regime-pointer {
+  position: absolute;
+  top: 50%;
+  left: var(--state-pos);
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--card);
+  border-radius: 999px;
+  background: var(--state-color);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.22);
+  transform: translate(-50%, -50%);
+}
+
+.header-regime-range {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .top-actions {
@@ -998,12 +1058,18 @@ tbody tr:hover {
 
   .topbar {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .top-actions {
     justify-content: flex-start;
     justify-items: start;
+    width: 100%;
+  }
+
+  .header-regime-slider {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .copy-action {
@@ -1300,6 +1366,7 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             f"<h1>{_localized('Nasdaq 100 Market Regime Dashboard')}</h1>",
             f'<p class="subtitle">{_localized("Finance-tech market monitor")}</p>',
             "</div>",
+            _header_regime_slider(summary),
             '<div class="top-actions">',
             _copy_markdown_button(),
             '<div class="secondary-actions">',
@@ -1342,6 +1409,25 @@ def _summary_grid(summary: dict[str, Any]) -> str:
         for label, value, class_name in metrics
     ]
     return f'<section class="summary">{"".join(cards)}</section>'
+
+
+def _header_regime_slider(summary: dict[str, Any]) -> str:
+    regime = _format_value(summary.get("market_regime", "normal"))
+    active = _band_for_regime(regime)
+    temperature = _numeric_or_default(summary.get("temperature_score"), (active[2] + active[3]) / 2.0)
+    state_pos = _scale_percent(temperature, 0.0, 100.0)
+    color = active[4]
+    return (
+        f'<div class="header-regime-slider" style="--state-pos: {state_pos:.2f}%; --state-color: {escape(color)};">'
+        f'<div class="header-regime-label">{_localized("Market State")}</div>'
+        f'<div class="header-regime-value">{_localized_pair(active[1], ZH_TEXT.get(active[1], active[1]))}</div>'
+        '<div class="header-regime-track" role="img" '
+        f'aria-label="{escape(active[1])} market state at {state_pos:.2f}">'
+        '<span class="header-regime-pointer"></span>'
+        "</div>"
+        '<div class="header-regime-range"><span>0</span><span>50</span><span>100</span></div>'
+        "</div>"
+    )
 
 
 def _config_metadata_html(summary: dict[str, Any]) -> str:
@@ -2278,6 +2364,16 @@ def _float_value(value: Any) -> float:
         raise ValueError(f"latest input must be numeric: {value!r}") from None
     if not math.isfinite(numeric):
         raise ValueError(f"latest input must be finite: {value!r}")
+    return numeric
+
+
+def _numeric_or_default(value: Any, default: float) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(numeric):
+        return default
     return numeric
 
 

@@ -54,8 +54,8 @@ h1 {
 }
 
 .topbar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(250px, 360px) auto;
   gap: 24px;
   align-items: flex-start;
   margin-bottom: 22px;
@@ -77,6 +77,65 @@ h1 {
   color: var(--muted-foreground);
   font-size: 14px;
   line-height: 1.45;
+}
+
+.header-regime-slider {
+  --state-pos: 50%;
+  --state-color: var(--primary);
+  display: grid;
+  gap: 10px;
+  align-self: stretch;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--state-color) 34%, var(--border));
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.72)),
+    color-mix(in srgb, var(--state-color) 8%, var(--card));
+  padding: 13px 14px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.header-regime-label {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.header-regime-value {
+  color: var(--foreground);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.12;
+}
+
+.header-regime-track {
+  position: relative;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #bfdbfe 0 26%, #99f6e4 26% 58%, #fde68a 58% 78%, #fecaca 78% 100%);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.header-regime-pointer {
+  position: absolute;
+  top: 50%;
+  left: var(--state-pos);
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--card);
+  border-radius: 999px;
+  background: var(--state-color);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.22);
+  transform: translate(-50%, -50%);
+}
+
+.header-regime-range {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .top-actions {
@@ -894,12 +953,18 @@ tbody tr:hover {
 
   .topbar {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .top-actions {
     justify-content: flex-start;
     justify-items: start;
+    width: 100%;
+  }
+
+  .header-regime-slider {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .copy-action {
@@ -966,6 +1031,7 @@ tbody tr:hover {
 <h1><span data-lang="en">Nasdaq 100 Market Regime Dashboard</span><span data-lang="zh">纳指100市场状态仪表盘</span></h1>
 <p class="subtitle"><span data-lang="en">Finance-tech market monitor</span><span data-lang="zh">金融科技市场监测</span></p>
 </div>
+<div class="header-regime-slider" style="--state-pos: 67.26%; --state-color: #facc15;"><div class="header-regime-label"><span data-lang="en">Market State</span><span data-lang="zh">市场状态指针</span></div><div class="header-regime-value"><span data-lang="en">Warm Recovery</span><span data-lang="zh">暖修复</span></div><div class="header-regime-track" role="img" aria-label="Warm Recovery market state at 67.26"><span class="header-regime-pointer"></span></div><div class="header-regime-range"><span>0</span><span>50</span><span>100</span></div></div>
 <div class="top-actions">
 <div class="copy-action"><p class="copy-helper"><span data-lang="en">send this page info to your AI for further analysis</span><span data-lang="zh">将本页信息发送给你的 AI 继续分析</span></p><button type="button" class="copy-button" data-copy-markdown data-copy-state=""><span data-lang="en">copy markdown</span><span data-lang="zh">复制 markdown</span></button></div>
 <div class="secondary-actions">

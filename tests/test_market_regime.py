@@ -915,6 +915,24 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("Finance-tech market monitor", html)
             self.assertIn("金融科技市场监测", html)
 
+    def test_write_dashboard_outputs_renders_header_market_state_slider(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["market_regime"] = "warm_recovery"
+            summary["temperature_score"] = 67.26
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="header-regime-slider"', html)
+            self.assertIn("Market State", html)
+            self.assertIn("市场状态指针", html)
+            self.assertIn('class="header-regime-value"', html)
+            self.assertIn("Warm Recovery", html)
+            self.assertIn("暖修复", html)
+            self.assertIn("--state-pos: 67.26%;", html)
+            self.assertIn('class="header-regime-pointer"', html)
+
     def test_write_dashboard_outputs_uses_consistent_human_regime_labels(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
