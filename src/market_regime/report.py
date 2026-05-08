@@ -585,6 +585,33 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   font-weight: 700;
 }
 
+.input-categories {
+  display: grid;
+  gap: 18px;
+}
+
+.input-category {
+  display: grid;
+  gap: 10px;
+}
+
+.input-category-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.input-category-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
 .pill-list {
   display: flex;
   flex-wrap: wrap;
@@ -627,6 +654,27 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   display: grid;
   gap: 12px;
   min-height: 214px;
+}
+
+.input-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.input-category-badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 22px;
+  align-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.07);
+  color: var(--primary);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .input-card-header {
@@ -696,7 +744,6 @@ body.lang-zh .metric-action .value [data-lang="en"] {
 }
 
 .input-card-description {
-  min-height: 38px;
   margin: 0;
   color: var(--muted-foreground);
   font-size: 13px;
@@ -784,6 +831,47 @@ body.lang-zh .metric-action .value [data-lang="en"] {
   color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 900;
+}
+
+.input-sparkline {
+  display: block;
+  width: 100%;
+  height: 46px;
+}
+
+.input-sparkline-frame {
+  fill: rgba(248, 250, 252, 0.72);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.input-sparkline-grid {
+  stroke: #e2e8f0;
+  stroke-width: 1;
+}
+
+.input-sparkline-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.status-low .input-sparkline-line {
+  stroke: #2563eb;
+}
+
+.status-high .input-sparkline-line {
+  stroke: var(--accent);
+}
+
+.status-stress .input-sparkline-line {
+  stroke: #dc2626;
+}
+
+.input-sparkline-area {
+  fill: rgba(15, 118, 110, 0.07);
 }
 
 .input-trend {
@@ -1543,9 +1631,10 @@ def _latest_inputs_html(summary: dict[str, Any], daily: pd.DataFrame) -> str:
         context_values.update(inputs)
     previous_values = _previous_latest_input_values(daily, summary, as_of)
     as_of_by_key = _latest_input_dates(summary, as_of)
+    history_by_key = _latest_input_history(summary, daily)
     return (
         f'<p class="panel-kicker">{_localized("Dashboard data date")}: {escape(as_of)}</p>'
-        f'{_input_grid(inputs, previous_values, as_of, context_values, as_of_by_key)}'
+        f'{_input_grid(inputs, previous_values, as_of, context_values, as_of_by_key, history_by_key)}'
     )
 
 
@@ -1588,6 +1677,43 @@ def _previous_latest_input_values(
             continue
         previous[str(key)] = _previous_input_value(daily, str(key), _format_value(entry.get("as_of_date", default_as_of)))
     return previous
+
+
+def _latest_input_history(summary: dict[str, Any], daily: pd.DataFrame) -> dict[str, list[tuple[str, float]]]:
+    history = summary.get("latest_input_history")
+    if isinstance(history, dict):
+        parsed: dict[str, list[tuple[str, float]]] = {}
+        for key, entries in history.items():
+            if not isinstance(entries, list):
+                raise ValueError(f"latest_input_history[{key!r}] must be a list")
+            parsed[str(key)] = [_history_entry(entry, str(key)) for entry in entries]
+        return parsed
+    if "date" not in daily.columns:
+        return {}
+    rows = daily.copy()
+    rows["_date"] = pd.to_datetime(rows["date"], errors="coerce")
+    rows = rows.dropna(subset=["_date"]).sort_values("_date")
+    result: dict[str, list[tuple[str, float]]] = {}
+    for key in INPUT_CARD_META:
+        if key not in rows.columns:
+            continue
+        values: list[tuple[str, float]] = []
+        for _, row in rows.tail(30).iterrows():
+            try:
+                values.append((row["_date"].strftime("%Y-%m-%d"), _float_value(row[key])))
+            except ValueError:
+                continue
+        result[key] = values
+    return result
+
+
+def _history_entry(entry: Any, key: str) -> tuple[str, float]:
+    if not isinstance(entry, dict):
+        raise ValueError(f"latest_input_history[{key!r}] entries must be dicts")
+    date = _format_value(entry.get("date", ""))
+    if not date:
+        raise ValueError(f"latest_input_history[{key!r}] entry missing date")
+    return date, _float_value(entry.get("value"))
 
 
 def _current_time_value() -> tuple[str, str]:
@@ -1719,12 +1845,22 @@ def _key_value_list(values: Any) -> str:
     return f"<ul>{items}</ul>"
 
 
+INPUT_CATEGORY_ORDER = ("sentiment", "trend", "volatility", "breadth", "semiconductor")
+INPUT_CATEGORY_META = {
+    "sentiment": ("CNN Fear & Greed sentiment", "CNN 恐惧贪婪情绪"),
+    "trend": ("NDX price and 180-day SMA", "纳指价格与 180 日均线"),
+    "volatility": ("VIX / VXN volatility", "VIX / VXN 波动率"),
+    "breadth": ("NDXE / NDX breadth", "NDXE / NDX 市场广度"),
+    "semiconductor": ("SOX / NDX semiconductor", "SOX / NDX 半导体主线"),
+}
+
 INPUT_CARD_META = {
     "cnn_fear_greed": (
+        "sentiment",
         "Fear & Greed",
         "恐惧贪婪",
-        "CNN sentiment gauge for crowd fear versus risk appetite.",
-        "CNN 情绪温度计，观察恐惧与风险偏好。",
+        "Nasdaq 100 market sentiment index from CNN. Higher readings show stronger risk appetite. Lower readings show more fear.",
+        "针对 Nasdaq 100 市场情绪指数。越高代表风险偏好越强；越低代表恐惧越重。",
         "0",
         "25",
         "45",
@@ -1733,10 +1869,11 @@ INPUT_CARD_META = {
         "100",
     ),
     "cnn_ma5": (
+        "sentiment",
         "Fear & Greed MA5",
         "恐惧贪婪 5 日均值",
-        "Short-term sentiment average; smoother than the daily reading.",
-        "短期情绪均值，比单日读数更平滑。",
+        "Smoothed Nasdaq 100 sentiment index. Higher means risk appetite is sustained; lower means fear is persistent.",
+        "针对 Nasdaq 100 平滑情绪指数。越高代表风险偏好更持续；越低代表恐惧更持续。",
         "0",
         "25",
         "45",
@@ -1745,10 +1882,11 @@ INPUT_CARD_META = {
         "100",
     ),
     "ndx": (
+        "trend",
         "NASDAQ 100",
         "纳指 100",
-        "Price level; status uses distance from the 180-day SMA.",
-        "价格位置；状态按相对 180 日均线距离判断。",
+        "Nasdaq 100 price index. Higher versus its baseline means stronger trend; lower means weaker trend pressure.",
+        "针对 Nasdaq 100 价格指数。相对基准越高代表趋势越强；越低代表趋势压力越大。",
         "-15%",
         "0",
         "+8%",
@@ -1756,10 +1894,11 @@ INPUT_CARD_META = {
         "+20%",
     ),
     "sma": (
+        "trend",
         "180D SMA",
         "180 日均线",
-        "Long-term trend baseline for the Nasdaq 100.",
-        "纳指 100 长期趋势基准线。",
+        "Nasdaq 100 long-term trend baseline. Higher means the trend floor is rising; lower means the baseline is softening.",
+        "针对 Nasdaq 100 长期趋势基准。越高代表趋势底座上移；越低代表趋势基准走弱。",
         "-15%",
         "0",
         "+8%",
@@ -1767,10 +1906,11 @@ INPUT_CARD_META = {
         "+20%",
     ),
     "dist_sma": (
+        "trend",
         "Distance to SMA",
         "均线偏离",
-        "How stretched price is versus the 180-day baseline.",
-        "价格相对 180 日均线的拉伸程度。",
+        "Nasdaq 100 stretch versus the 180-day SMA. Higher means price is more extended; lower means price is closer to or below trend.",
+        "针对 Nasdaq 100 相对 180 日均线偏离。越高代表价格更拉伸；越低代表更接近或低于趋势。",
         "-15%",
         "0",
         "+8%",
@@ -1778,10 +1918,11 @@ INPUT_CARD_META = {
         "+20%",
     ),
     "vix": (
+        "volatility",
         "VIX",
         "VIX 标普波动率",
-        "S&P 500 implied-volatility stress gauge.",
-        "标普 500 隐含波动率压力表。",
+        "S&P 500 implied-volatility index used as broad market stress. Higher means more stress; lower means calmer conditions.",
+        "针对标普 500 市场隐含波动率指数。越高代表压力越大；越低代表市场越平静。",
         "0",
         "12",
         "20",
@@ -1789,10 +1930,11 @@ INPUT_CARD_META = {
         "50",
     ),
     "vxn": (
+        "volatility",
         "VXN",
         "VXN 纳指波动率",
-        "Nasdaq 100 implied-volatility stress gauge.",
-        "纳指 100 隐含波动率压力表。",
+        "Nasdaq 100 implied-volatility index. Higher means tech-market stress is rising; lower means volatility is calmer.",
+        "针对 Nasdaq 100 隐含波动率指数。越高代表科技股压力上升；越低代表波动更平静。",
         "0",
         "15",
         "22",
@@ -1800,10 +1942,11 @@ INPUT_CARD_META = {
         "55",
     ),
     "vix_pctile": (
+        "volatility",
         "VIX Percentile",
         "VIX 分位",
-        "VIX rank inside the rolling history window.",
-        "VIX 在滚动历史窗口中的相对位置。",
+        "S&P 500 volatility percentile in rolling history. Higher means stress is historically elevated; lower means volatility is historically low.",
+        "针对标普 500 波动率历史分位。越高代表压力处在历史高位；越低代表波动处在历史低位。",
         "0",
         ".20",
         ".60",
@@ -1811,10 +1954,11 @@ INPUT_CARD_META = {
         "1.00",
     ),
     "vxn_pctile": (
+        "volatility",
         "VXN Percentile",
         "VXN 分位",
-        "VXN rank inside the rolling history window.",
-        "VXN 在滚动历史窗口中的相对位置。",
+        "Nasdaq 100 volatility percentile in rolling history. Higher means tech stress is historically elevated; lower means volatility is historically low.",
+        "针对 Nasdaq 100 波动率历史分位。越高代表科技股压力处在历史高位；越低代表波动处在历史低位。",
         "0",
         ".20",
         ".60",
@@ -1822,10 +1966,11 @@ INPUT_CARD_META = {
         "1.00",
     ),
     "ndxe_ndx": (
+        "breadth",
         "NDXE / NDX",
         "等权 / 市值加权",
-        "Breadth ratio; higher means gains are more broadly shared.",
-        "市场广度比率；越高代表上涨更分散。",
+        "Nasdaq 100 equal-weight versus cap-weight breadth index. Higher means gains are more broadly shared; lower means leadership is narrow.",
+        "针对 Nasdaq 100 等权/市值加权广度指数。越高代表上涨更分散；越低代表龙头集中度更高。",
         ".25",
         ".32",
         ".36",
@@ -1833,10 +1978,11 @@ INPUT_CARD_META = {
         ".45",
     ),
     "ndxe_ma": (
+        "breadth",
         "NDXE / NDX MA",
         "广度均值",
-        "Smoothed breadth ratio for trend confirmation.",
-        "平滑后的广度比率，用于确认趋势。",
+        "Smoothed Nasdaq 100 breadth index. Higher means broad participation persists; lower means breadth is fading.",
+        "针对 Nasdaq 100 平滑广度指数。越高代表参与度持续较广；越低代表广度走弱。",
         ".25",
         ".32",
         ".36",
@@ -1844,10 +1990,11 @@ INPUT_CARD_META = {
         ".45",
     ),
     "sox_ndx": (
+        "semiconductor",
         "SOX / NDX",
         "半导体 / 纳指",
-        "Semiconductor leadership versus the Nasdaq 100.",
-        "半导体相对纳指 100 的主线强度。",
+        "Semiconductor leadership index versus Nasdaq 100. Higher means chips are leading tech; lower means the semiconductor core is weakening.",
+        "针对半导体相对 Nasdaq 100 主线指数。越高代表芯片领涨科技；越低代表半导体核心走弱。",
         ".25",
         ".32",
         ".36",
@@ -1855,10 +2002,11 @@ INPUT_CARD_META = {
         ".45",
     ),
     "sox_ma": (
+        "semiconductor",
         "SOX / NDX MA",
         "半导体均值",
-        "Smoothed semiconductor leadership signal.",
-        "平滑后的半导体主线强度。",
+        "Smoothed semiconductor leadership index. Higher means leadership is durable; lower means confirmation is fading.",
+        "针对平滑半导体主线指数。越高代表主线更持久；越低代表确认度下降。",
         ".25",
         ".32",
         ".36",
@@ -1874,17 +2022,42 @@ def _input_grid(
     as_of: str = "",
     context_values: dict[str, Any] | None = None,
     as_of_by_key: dict[str, str] | None = None,
+    history_by_key: dict[str, list[tuple[str, float]]] | None = None,
 ) -> str:
     if not isinstance(values, dict) or not values:
         return "<p>None</p>"
     previous_values = previous_values or {}
     context_values = context_values or values
     as_of_by_key = as_of_by_key or {}
-    items = "".join(
-        _input_card_html(str(key), value, context_values, previous_values, as_of_by_key.get(str(key), as_of))
-        for key, value in values.items()
-    )
-    return f'<ul class="input-grid">{items}</ul>'
+    history_by_key = history_by_key or {}
+    grouped: dict[str, list[tuple[str, Any]]] = {category: [] for category in INPUT_CATEGORY_ORDER}
+    for key, value in values.items():
+        category = _input_category(str(key))
+        grouped.setdefault(category, []).append((str(key), value))
+    sections: list[str] = []
+    for category in [*INPUT_CATEGORY_ORDER, *[key for key in grouped if key not in INPUT_CATEGORY_ORDER]]:
+        entries = grouped.get(category, [])
+        if not entries:
+            continue
+        title_en, title_zh = INPUT_CATEGORY_META[category]
+        items = "".join(
+            _input_card_html(
+                key,
+                value,
+                context_values,
+                previous_values,
+                as_of_by_key.get(key, as_of),
+                history_by_key.get(key, []),
+            )
+            for key, value in entries
+        )
+        sections.append(
+            '<section class="input-category">'
+            f'<h3 class="input-category-title">{_localized_pair(title_en, title_zh)}</h3>'
+            f'<ul class="input-grid">{items}</ul>'
+            "</section>"
+        )
+    return f'<div class="input-categories">{"".join(sections)}</div>'
 
 
 def _input_card_html(
@@ -1893,28 +2066,35 @@ def _input_card_html(
     values: dict[str, Any],
     previous_values: dict[str, Any],
     as_of: str,
+    history: list[tuple[str, float]],
 ) -> str:
     if key not in INPUT_CARD_META:
         raise ValueError(f"unknown latest input key: {key}")
-    title_en, title_zh, desc_en, desc_zh, *scale_labels = INPUT_CARD_META[key]
+    category, title_en, title_zh, desc_en, desc_zh, *scale_labels = INPUT_CARD_META[key]
+    category_en, category_zh = INPUT_CATEGORY_META[category]
     status_class, status_en, status_zh = _input_status(key, value, values, previous_values)
     marker = _input_marker_percent(key, value, values)
     trend = _input_trend_html(value, previous_values.get(key))
     scale = "".join(f"<span>{escape(label)}</span>" for label in scale_labels)
+    sparkline = _input_sparkline_html(key, title_en, history)
     return (
         f'<li class="input-card status-{status_class}" aria-label="{escape(title_en)} status {escape(status_en)}">'
+        '<div class="input-card-topline">'
+        f'<span class="input-category-badge">{_localized_pair(category_en, category_zh)}</span>'
+        f'<span class="input-status"><span class="input-status-label">{_localized_pair(status_en, status_zh)}</span></span>'
+        "</div>"
         '<div class="input-card-header">'
         '<div class="input-title">'
         f"<strong>{_localized_pair(title_en, title_zh)}</strong>"
         f'<span class="input-code">{escape(key)}</span>'
         "</div>"
-        f'<span class="input-status"><span class="input-status-label">{_localized_pair(status_en, status_zh)}</span></span>'
         "</div>"
         f'<p class="input-card-description">{_localized_pair(desc_en, desc_zh)}</p>'
         '<div class="input-value-row">'
         f'<span class="input-value">{escape(_input_display_value(key, value))}</span>'
         f"{trend}"
         "</div>"
+        f"{sparkline}"
         '<div class="input-scale">'
         f'<div class="input-scale-track" style="--marker: {marker:.2f}%;">'
         '<span class="input-scale-marker" aria-hidden="true"></span>'
@@ -1923,6 +2103,53 @@ def _input_card_html(
         "</div>"
         f'<div class="input-meta"><span>{_localized_pair(f"Updated {as_of}", f"更新 {as_of}")}</span></div>'
         "</li>"
+    )
+
+
+def _input_category(key: str) -> str:
+    if key not in INPUT_CARD_META:
+        raise ValueError(f"unknown latest input key: {key}")
+    return str(INPUT_CARD_META[key][0])
+
+
+def _input_sparkline_html(key: str, title: str, history: list[tuple[str, float]]) -> str:
+    points = [(date, value) for date, value in history if math.isfinite(value)]
+    if len(points) < 2:
+        return ""
+    points = points[-30:]
+    values = [value for _, value in points]
+    lower = min(values)
+    upper = max(values)
+    if math.isclose(lower, upper):
+        lower -= 1.0
+        upper += 1.0
+    width = 184.0
+    height = 46.0
+    pad_x = 6.0
+    pad_y = 7.0
+    inner_width = width - pad_x * 2
+    inner_height = height - pad_y * 2
+    coords: list[tuple[float, float]] = []
+    for index, (_, value) in enumerate(points):
+        x = pad_x + (inner_width * index / max(1, len(points) - 1))
+        y = pad_y + (upper - value) / (upper - lower) * inner_height
+        coords.append((x, y))
+    polyline = " ".join(f"{x:.2f},{y:.2f}" for x, y in coords)
+    area = f"M {coords[0][0]:.2f} {height - pad_y:.2f} " + " ".join(
+        f"L {x:.2f} {y:.2f}" for x, y in coords
+    ) + f" L {coords[-1][0]:.2f} {height - pad_y:.2f} Z"
+    start_date = escape(points[0][0])
+    end_date = escape(points[-1][0])
+    return (
+        f'<svg class="input-sparkline" viewBox="0 0 {width:.0f} {height:.0f}" role="img" '
+        f'aria-label="Recent {escape(title)} trend">'
+        f"<title>Recent {escape(title)} trend</title>"
+        f'<rect class="input-sparkline-frame" x="0.5" y="0.5" width="{width - 1:.0f}" height="{height - 1:.0f}" rx="6"/>'
+        f'<line class="input-sparkline-grid" x1="{pad_x:.0f}" y1="{height / 2:.2f}" x2="{width - pad_x:.0f}" y2="{height / 2:.2f}"/>'
+        f'<path class="input-sparkline-area" d="{area}"/>'
+        f'<polyline class="input-sparkline-line" points="{polyline}"/>'
+        f"<desc>{start_date} to {end_date}</desc>"
+        "</svg>"
     )
 
 

@@ -976,6 +976,51 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn('style="--marker: 68.00%;"', html)
             self.assertIn('aria-label="Fear &amp; Greed status Greed"', html)
 
+    def test_write_dashboard_outputs_latest_inputs_group_cards_and_show_sparklines(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            daily = pd.concat(
+                [
+                    self._daily().assign(
+                        date=f"2026-04-{day:02d}",
+                        cnn_fear_greed=55.0 + day,
+                        ndx=100.0 + day,
+                        sma=98.0 + day,
+                        dist_sma=0.02 + day / 1000,
+                        vix=18.0 - day / 10,
+                        ndxe_ndx=0.33 + day / 1000,
+                        sox_ndx=0.38 + day / 1000,
+                    )
+                    for day in range(24, 31)
+                ],
+                ignore_index=True,
+            )
+            summary = self._summary()
+            summary["inputs"] = {
+                "cnn_fear_greed": 68.0,
+                "ndx": 28599.17,
+                "vix": 17.39,
+                "ndxe_ndx": 0.33,
+                "sox_ndx": 0.40,
+            }
+
+            write_dashboard_outputs(output_dir, daily, summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="input-category-title"', html)
+            self.assertIn("CNN Fear &amp; Greed sentiment", html)
+            self.assertIn("NDX price and 180-day SMA", html)
+            self.assertIn("VIX / VXN volatility", html)
+            self.assertIn("NDXE / NDX breadth", html)
+            self.assertIn("SOX / NDX semiconductor", html)
+            self.assertIn("Nasdaq 100 market sentiment index", html)
+            self.assertIn("Higher readings show stronger risk appetite", html)
+            self.assertIn("Lower readings show more fear", html)
+            self.assertIn("针对 Nasdaq 100 市场情绪指数", html)
+            self.assertIn('class="input-sparkline"', html)
+            self.assertIn('aria-label="Recent Fear &amp; Greed trend"', html)
+            self.assertIn("<polyline", html)
+
     def test_write_dashboard_outputs_latest_inputs_use_per_indicator_update_dates(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
@@ -1096,21 +1141,22 @@ class MarketRegimeReportTests(unittest.TestCase):
 
 class MarketRegimeWorkflowTests(unittest.TestCase):
     def test_latest_input_snapshot_dates_follow_source_dependencies(self):
-        from scripts.run_market_regime_dashboard import latest_input_snapshot
+        from scripts.run_market_regime_dashboard import latest_input_history, latest_input_snapshot
 
         frame = pd.DataFrame(
             {
-                "cnn_fear_greed": [67.0, 68.0],
-                "cnn_ma5": [66.0, 66.2],
-                "ndx": [28599.17, float("nan")],
-                "sma": [25134.07, 99999.99],
-                "ndxe_ndx": [0.33, float("nan")],
-                "ndxe_ma": [0.34, 0.99],
+                "cnn_fear_greed": [66.0, 67.0, 68.0],
+                "cnn_ma5": [65.0, 66.0, 66.2],
+                "ndx": [28400.0, 28599.17, float("nan")],
+                "sma": [25000.0, 25134.07, 99999.99],
+                "ndxe_ndx": [0.32, 0.33, float("nan")],
+                "ndxe_ma": [0.33, 0.34, 0.99],
             },
-            index=pd.to_datetime(["2026-05-06", "2026-05-07"]),
+            index=pd.to_datetime(["2026-05-05", "2026-05-06", "2026-05-07"]),
         )
 
         snapshot = latest_input_snapshot(frame, ["cnn_ma5", "sma", "ndxe_ma"])
+        history = latest_input_history(frame, ["cnn_ma5", "sma", "ndxe_ma"])
 
         self.assertEqual("2026-05-07", snapshot["cnn_ma5"]["as_of_date"])
         self.assertEqual(66.2, snapshot["cnn_ma5"]["value"])
@@ -1118,6 +1164,9 @@ class MarketRegimeWorkflowTests(unittest.TestCase):
         self.assertEqual(25134.07, snapshot["sma"]["value"])
         self.assertEqual("2026-05-06", snapshot["ndxe_ma"]["as_of_date"])
         self.assertEqual(0.34, snapshot["ndxe_ma"]["value"])
+        self.assertEqual("2026-05-07", history["cnn_ma5"][-1]["date"])
+        self.assertEqual("2026-05-06", history["sma"][-1]["date"])
+        self.assertEqual("2026-05-06", history["ndxe_ma"][-1]["date"])
 
     def test_run_workflow_writes_outputs_for_complete_target_date(self):
         from scripts.run_market_regime_dashboard import run_workflow

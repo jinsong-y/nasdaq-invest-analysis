@@ -84,6 +84,7 @@ def run_workflow(
     daily = classify_daily(featured_for_summary, config=config)
     summary = latest_summary(featured_for_summary, config=config)
     summary["latest_inputs"] = latest_input_snapshot(featured, summary.get("inputs", {}).keys())
+    summary["latest_input_history"] = latest_input_history(featured, summary.get("inputs", {}).keys())
     if config_metadata is not None:
         summary["config_metadata"] = config_metadata
     write_dashboard_outputs(output_dir, daily, summary)
@@ -116,6 +117,41 @@ def latest_input_snapshot(featured: pd.DataFrame, keys: Any = REQUIRED_COLUMNS) 
             "as_of_date": latest_date.strftime("%Y-%m-%d"),
         }
     return snapshot
+
+
+def latest_input_history(
+    featured: pd.DataFrame,
+    keys: Any = REQUIRED_COLUMNS,
+    *,
+    limit: int = 30,
+) -> dict[str, list[dict[str, Any]]]:
+    if "date" in featured.columns:
+        raise ValueError("featured data must use the market date index, not a date column")
+    if limit < 2:
+        raise ValueError("latest input history limit must be at least 2")
+    rows = featured.sort_index()
+    history: dict[str, list[dict[str, Any]]] = {}
+    for key in keys:
+        if key not in rows.columns:
+            raise ValueError(f"latest input column missing: {key}")
+        dependencies = LATEST_INPUT_DEPENDENCIES.get(str(key), (str(key),))
+        valid_mask = _finite_series(rows[key]).index
+        valid_dates = set(valid_mask)
+        for dependency in dependencies:
+            if dependency not in rows.columns:
+                raise ValueError(f"latest input dependency missing for {key}: {dependency}")
+            valid_dates &= set(_finite_series(rows[dependency]).index)
+        entries: list[dict[str, Any]] = []
+        for date in [index for index in rows.index if index in valid_dates][-limit:]:
+            value = float(pd.to_numeric(pd.Series([rows.at[date, key]]), errors="coerce").iloc[0])
+            if not math.isfinite(value):
+                raise ValueError(f"latest input history has no finite value for {key} on {date.strftime('%Y-%m-%d')}")
+            timestamp = date if isinstance(date, pd.Timestamp) else pd.Timestamp(date)
+            entries.append({"date": timestamp.strftime("%Y-%m-%d"), "value": value})
+        if len(entries) < 2:
+            raise ValueError(f"latest input history has fewer than 2 values: {key}")
+        history[str(key)] = entries
+    return history
 
 
 def _finite_series(series: pd.Series) -> pd.Series:
