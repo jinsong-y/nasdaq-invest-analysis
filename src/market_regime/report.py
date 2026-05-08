@@ -608,34 +608,108 @@ body.lang-zh .metric-action .value [data-lang="en"] {
 
 .input-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(276px, 1fr));
+  gap: 14px;
   margin: 0;
   padding: 0;
 }
 
-.input-grid li {
+.input-card {
   list-style: none;
   border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--muted);
-  padding: 10px;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.78)),
+    var(--card);
+  padding: 16px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
+  display: grid;
+  gap: 12px;
+  min-height: 214px;
 }
 
-.input-key {
-  display: block;
+.input-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.input-title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.input-title strong {
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.input-code {
   color: var(--muted-foreground);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 900;
+  letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.input-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.10);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.status-low .input-status {
+  border-color: rgba(37, 99, 235, 0.25);
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
+.status-normal .input-status {
+  border-color: rgba(15, 118, 110, 0.26);
+  background: rgba(15, 118, 110, 0.09);
+  color: var(--primary);
+}
+
+.status-high .input-status {
+  border-color: rgba(180, 83, 9, 0.30);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--accent);
+}
+
+.status-stress .input-status {
+  border-color: rgba(220, 38, 38, 0.28);
+  background: rgba(220, 38, 38, 0.09);
+  color: #b91c1c;
+}
+
+.input-card-description {
+  min-height: 38px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .input-value {
   display: block;
-  margin-top: 6px;
+  margin-top: 0;
   color: var(--foreground);
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .input-value-row {
@@ -648,6 +722,67 @@ body.lang-zh .metric-action .value [data-lang="en"] {
 
 .input-value-row .input-value {
   margin-top: 0;
+}
+
+.input-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.input-scale {
+  display: grid;
+  gap: 7px;
+}
+
+.input-scale-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #bfdbfe 0 24%, #99f6e4 24% 56%, #fde68a 56% 76%, #fecaca 76% 100%);
+  overflow: visible;
+}
+
+.input-scale-marker {
+  position: absolute;
+  top: 50%;
+  left: var(--marker);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  background: var(--foreground);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.22);
+  transform: translate(-50%, -50%);
+}
+
+.status-low .input-scale-marker {
+  background: #2563eb;
+}
+
+.status-normal .input-scale-marker {
+  background: var(--primary);
+}
+
+.status-high .input-scale-marker {
+  background: var(--accent);
+}
+
+.status-stress .input-scale-marker {
+  background: #dc2626;
+}
+
+.input-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .input-trend {
@@ -823,6 +958,18 @@ tbody tr:hover {
 
   .value {
     font-size: 19px;
+  }
+
+  .input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-card {
+    min-height: 0;
+  }
+
+  .input-value {
+    font-size: 30px;
   }
 }
 """
@@ -1389,10 +1536,14 @@ def _summary_paragraph(summary: dict[str, Any]) -> str:
 
 def _latest_inputs_html(summary: dict[str, Any], daily: pd.DataFrame) -> str:
     as_of = _format_value(summary.get("as_of_date", ""))
+    inputs = summary.get("inputs", {})
+    context_values = _current_input_values(daily, as_of)
+    if isinstance(inputs, dict):
+        context_values.update(inputs)
     previous_values = _previous_input_values(daily, as_of)
     return (
         f'<p class="panel-kicker">{_localized("Data date")}: {escape(as_of)}</p>'
-        f'{_input_grid(summary.get("inputs", {}), previous_values)}'
+        f'{_input_grid(inputs, previous_values, as_of, context_values)}'
     )
 
 
@@ -1525,21 +1676,343 @@ def _key_value_list(values: Any) -> str:
     return f"<ul>{items}</ul>"
 
 
-def _input_grid(values: Any, previous_values: dict[str, Any] | None = None) -> str:
+INPUT_CARD_META = {
+    "cnn_fear_greed": (
+        "Fear & Greed",
+        "恐惧贪婪",
+        "CNN sentiment gauge for crowd fear versus risk appetite.",
+        "CNN 情绪温度计，观察恐惧与风险偏好。",
+        "0",
+        "25",
+        "45",
+        "56",
+        "76",
+        "100",
+    ),
+    "cnn_ma5": (
+        "Fear & Greed MA5",
+        "恐惧贪婪 5 日均值",
+        "Short-term sentiment average; smoother than the daily reading.",
+        "短期情绪均值，比单日读数更平滑。",
+        "0",
+        "25",
+        "45",
+        "56",
+        "76",
+        "100",
+    ),
+    "ndx": (
+        "NASDAQ 100",
+        "纳指 100",
+        "Price level; status uses distance from the 180-day SMA.",
+        "价格位置；状态按相对 180 日均线距离判断。",
+        "-15%",
+        "0",
+        "+8%",
+        "+15%",
+        "+20%",
+    ),
+    "sma": (
+        "180D SMA",
+        "180 日均线",
+        "Long-term trend baseline for the Nasdaq 100.",
+        "纳指 100 长期趋势基准线。",
+        "-15%",
+        "0",
+        "+8%",
+        "+15%",
+        "+20%",
+    ),
+    "dist_sma": (
+        "Distance to SMA",
+        "均线偏离",
+        "How stretched price is versus the 180-day baseline.",
+        "价格相对 180 日均线的拉伸程度。",
+        "-15%",
+        "0",
+        "+8%",
+        "+15%",
+        "+20%",
+    ),
+    "vix": (
+        "VIX",
+        "VIX 标普波动率",
+        "S&P 500 implied-volatility stress gauge.",
+        "标普 500 隐含波动率压力表。",
+        "0",
+        "12",
+        "20",
+        "30",
+        "50",
+    ),
+    "vxn": (
+        "VXN",
+        "VXN 纳指波动率",
+        "Nasdaq 100 implied-volatility stress gauge.",
+        "纳指 100 隐含波动率压力表。",
+        "0",
+        "15",
+        "22",
+        "32",
+        "55",
+    ),
+    "vix_pctile": (
+        "VIX Percentile",
+        "VIX 分位",
+        "VIX rank inside the rolling history window.",
+        "VIX 在滚动历史窗口中的相对位置。",
+        "0",
+        ".20",
+        ".60",
+        ".80",
+        "1.00",
+    ),
+    "vxn_pctile": (
+        "VXN Percentile",
+        "VXN 分位",
+        "VXN rank inside the rolling history window.",
+        "VXN 在滚动历史窗口中的相对位置。",
+        "0",
+        ".20",
+        ".60",
+        ".80",
+        "1.00",
+    ),
+    "ndxe_ndx": (
+        "NDXE / NDX",
+        "等权 / 市值加权",
+        "Breadth ratio; higher means gains are more broadly shared.",
+        "市场广度比率；越高代表上涨更分散。",
+        ".25",
+        ".32",
+        ".36",
+        ".42",
+        ".45",
+    ),
+    "ndxe_ma": (
+        "NDXE / NDX MA",
+        "广度均值",
+        "Smoothed breadth ratio for trend confirmation.",
+        "平滑后的广度比率，用于确认趋势。",
+        ".25",
+        ".32",
+        ".36",
+        ".42",
+        ".45",
+    ),
+    "sox_ndx": (
+        "SOX / NDX",
+        "半导体 / 纳指",
+        "Semiconductor leadership versus the Nasdaq 100.",
+        "半导体相对纳指 100 的主线强度。",
+        ".25",
+        ".32",
+        ".36",
+        ".42",
+        ".45",
+    ),
+    "sox_ma": (
+        "SOX / NDX MA",
+        "半导体均值",
+        "Smoothed semiconductor leadership signal.",
+        "平滑后的半导体主线强度。",
+        ".25",
+        ".32",
+        ".36",
+        ".42",
+        ".45",
+    ),
+}
+
+
+def _input_grid(
+    values: Any,
+    previous_values: dict[str, Any] | None = None,
+    as_of: str = "",
+    context_values: dict[str, Any] | None = None,
+) -> str:
     if not isinstance(values, dict) or not values:
         return "<p>None</p>"
     previous_values = previous_values or {}
+    context_values = context_values or values
     items = "".join(
-        '<li>'
-        f'<span class="input-key">{escape(str(key))}</span>'
-        '<span class="input-value-row">'
-        f'<span class="input-value">{escape(_format_value(value))}</span>'
-        f'{_input_trend_html(value, previous_values.get(str(key)))}'
-        "</span>"
-        "</li>"
+        _input_card_html(str(key), value, context_values, previous_values, as_of)
         for key, value in values.items()
     )
     return f'<ul class="input-grid">{items}</ul>'
+
+
+def _input_card_html(
+    key: str,
+    value: Any,
+    values: dict[str, Any],
+    previous_values: dict[str, Any],
+    as_of: str,
+) -> str:
+    if key not in INPUT_CARD_META:
+        raise ValueError(f"unknown latest input key: {key}")
+    title_en, title_zh, desc_en, desc_zh, *scale_labels = INPUT_CARD_META[key]
+    status_class, status_en, status_zh = _input_status(key, value, values, previous_values)
+    marker = _input_marker_percent(key, value, values)
+    trend = _input_trend_html(value, previous_values.get(key))
+    scale = "".join(f"<span>{escape(label)}</span>" for label in scale_labels)
+    return (
+        f'<li class="input-card status-{status_class}" aria-label="{escape(title_en)} status {escape(status_en)}">'
+        '<div class="input-card-header">'
+        '<div class="input-title">'
+        f"<strong>{_localized_pair(title_en, title_zh)}</strong>"
+        f'<span class="input-code">{escape(key)}</span>'
+        "</div>"
+        f'<span class="input-status"><span class="input-status-label">{_localized_pair(status_en, status_zh)}</span></span>'
+        "</div>"
+        f'<p class="input-card-description">{_localized_pair(desc_en, desc_zh)}</p>'
+        '<div class="input-value-row">'
+        f'<span class="input-value">{escape(_input_display_value(key, value))}</span>'
+        f"{trend}"
+        "</div>"
+        '<div class="input-scale">'
+        f'<div class="input-scale-track" style="--marker: {marker:.2f}%;">'
+        '<span class="input-scale-marker" aria-hidden="true"></span>'
+        "</div>"
+        f'<div class="input-scale-labels">{scale}</div>'
+        "</div>"
+        f'<div class="input-meta"><span>{_localized_pair(f"Updated {as_of}", f"更新 {as_of}")}</span></div>'
+        "</li>"
+    )
+
+
+def _input_status(
+    key: str,
+    value: Any,
+    values: dict[str, Any],
+    previous_values: dict[str, Any],
+) -> tuple[str, str, str]:
+    numeric = _float_value(value)
+    if key in {"cnn_fear_greed", "cnn_ma5"}:
+        return _band_status(
+            numeric,
+            [
+                (25.0, "stress", "Extreme Fear", "极恐"),
+                (45.0, "low", "Fear", "恐惧"),
+                (56.0, "normal", "Neutral", "中性"),
+                (76.0, "high", "Greed", "贪婪"),
+                (math.inf, "stress", "Extreme Greed", "极贪"),
+            ],
+        )
+    if key in {"ndx", "sma", "dist_sma"}:
+        distance = _distance_value(values)
+        if key == "sma":
+            trend = _input_trend(value, previous_values.get(key))
+            if trend == "down":
+                return "low", "Falling", "下行"
+            if trend == "up":
+                return "normal", "Rising", "上行"
+        return _band_status(
+            distance,
+            [
+                (-0.08, "low", "Below Trend", "趋势下方"),
+                (0.0, "low", "Soft", "偏弱"),
+                (0.08, "normal", "Normal", "正常"),
+                (0.15, "high", "High", "偏高"),
+                (math.inf, "stress", "Extended", "过度拉伸"),
+            ],
+        )
+    if key == "vix":
+        return _volatility_status(numeric, normal_high=20.0, elevated_high=30.0, panic_high=50.0)
+    if key == "vxn":
+        return _volatility_status(numeric, normal_high=22.0, elevated_high=32.0, panic_high=55.0)
+    if key in {"vix_pctile", "vxn_pctile"}:
+        return _band_status(
+            numeric,
+            [
+                (0.20, "low", "Low", "偏低"),
+                (0.60, "normal", "Normal", "正常"),
+                (0.80, "high", "Elevated", "偏高"),
+                (math.inf, "stress", "High Stress", "高压力"),
+            ],
+        )
+    if key in {"ndxe_ndx", "ndxe_ma", "sox_ndx", "sox_ma"}:
+        return _band_status(
+            numeric,
+            [
+                (0.32, "low", "Weak", "偏弱"),
+                (0.36, "normal", "Neutral", "中性"),
+                (0.42, "high", "Strong", "偏强"),
+                (math.inf, "stress", "Crowded", "拥挤"),
+            ],
+        )
+    raise ValueError(f"unknown latest input key: {key}")
+
+
+def _band_status(value: float, bands: list[tuple[float, str, str, str]]) -> tuple[str, str, str]:
+    if pd.isna(value):
+        raise ValueError("latest input status cannot be computed from NaN")
+    for upper, status_class, english, chinese in bands:
+        if value < upper:
+            return status_class, english, chinese
+    raise ValueError(f"latest input status bands exhausted for {value}")
+
+
+def _volatility_status(value: float, *, normal_high: float, elevated_high: float, panic_high: float) -> tuple[str, str, str]:
+    return _band_status(
+        value,
+        [
+            (normal_high * 0.6, "low", "Calm", "低波动"),
+            (normal_high, "normal", "Normal", "正常"),
+            (elevated_high, "high", "Elevated", "略升"),
+            (panic_high, "stress", "Stress", "压力"),
+            (math.inf, "stress", "Panic", "恐慌"),
+        ],
+    )
+
+
+def _input_marker_percent(key: str, value: Any, values: dict[str, Any]) -> float:
+    if key in {"ndx", "sma", "dist_sma"}:
+        return _scale_percent(_distance_value(values), -0.15, 0.20)
+    numeric = _float_value(value)
+    if key in {"cnn_fear_greed", "cnn_ma5"}:
+        return _scale_percent(numeric, 0.0, 100.0)
+    if key == "vix":
+        return _scale_percent(numeric, 0.0, 50.0)
+    if key == "vxn":
+        return _scale_percent(numeric, 0.0, 55.0)
+    if key in {"vix_pctile", "vxn_pctile"}:
+        return _scale_percent(numeric, 0.0, 1.0)
+    if key in {"ndxe_ndx", "ndxe_ma", "sox_ndx", "sox_ma"}:
+        return _scale_percent(numeric, 0.25, 0.45)
+    raise ValueError(f"unknown latest input key: {key}")
+
+
+def _input_display_value(key: str, value: Any) -> str:
+    if key == "dist_sma":
+        return f"{_float_value(value) * 100:.2f}%"
+    return _format_value(value)
+
+
+def _distance_value(values: dict[str, Any]) -> float:
+    if "dist_sma" in values and values.get("dist_sma") not in ("", None):
+        return _float_value(values.get("dist_sma"))
+    ndx = _float_value(values.get("ndx"))
+    sma = _float_value(values.get("sma"))
+    if math.isclose(sma, 0.0):
+        raise ValueError("dist_sma is required to classify price trend inputs")
+    return (ndx - sma) / sma
+
+
+def _float_value(value: Any) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"latest input must be numeric: {value!r}") from None
+    if not math.isfinite(numeric):
+        raise ValueError(f"latest input must be finite: {value!r}")
+    return numeric
+
+
+def _scale_percent(value: float, lower: float, upper: float) -> float:
+    if upper <= lower:
+        raise ValueError("scale upper bound must be greater than lower bound")
+    return max(0.0, min(100.0, (value - lower) / (upper - lower) * 100.0))
 
 
 def _previous_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
@@ -1554,6 +2027,20 @@ def _previous_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
     if previous.empty:
         return {}
     return previous.iloc[0].drop(labels=["_date"]).to_dict()
+
+
+def _current_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
+    if "date" not in daily.columns:
+        return {}
+    target = pd.to_datetime(as_of, errors="coerce")
+    if pd.isna(target):
+        return {}
+    rows = daily.copy()
+    rows["_date"] = pd.to_datetime(rows["date"], errors="coerce")
+    current = rows[rows["_date"] == target]
+    if current.empty:
+        return {}
+    return current.iloc[0].drop(labels=["_date"]).to_dict()
 
 
 def _input_trend_html(current: Any, previous: Any) -> str:

@@ -938,6 +938,36 @@ class MarketRegimeReportTests(unittest.TestCase):
             self.assertIn("数据日期", html)
             self.assertIn("2026-04-30", html)
 
+    def test_write_dashboard_outputs_latest_inputs_render_rich_indicator_cards(self):
+        with TemporaryDirectory() as tmp:
+            output_dir = Path(tmp)
+            summary = self._summary()
+            summary["inputs"] = {
+                "cnn_fear_greed": 68.0,
+                "ndx": 28599.17,
+                "dist_sma": 0.14,
+                "vix": 17.39,
+                "vxn": 23.58,
+                "ndxe_ndx": 0.33,
+                "sox_ndx": 0.40,
+            }
+
+            write_dashboard_outputs(output_dir, self._daily(), summary)
+
+            html = (output_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn('class="input-card status-high"', html)
+            self.assertIn("Fear &amp; Greed", html)
+            self.assertIn("贪婪", html)
+            self.assertIn("NASDAQ 100", html)
+            self.assertIn("纳指 100", html)
+            self.assertIn("Updated 2026-04-30", html)
+            self.assertIn("更新 2026-04-30", html)
+            self.assertIn('class="input-card-description"', html)
+            self.assertIn('class="input-status-label"', html)
+            self.assertIn('class="input-scale-track"', html)
+            self.assertIn('style="--marker: 68.00%;"', html)
+            self.assertIn('aria-label="Fear &amp; Greed status Greed"', html)
+
     def test_write_dashboard_outputs_latest_inputs_show_prior_day_trend(self):
         with TemporaryDirectory() as tmp:
             output_dir = Path(tmp)
