@@ -48,6 +48,7 @@ ZH_TEXT = {
     "Temperature": "温度",
     "Confidence": "置信度",
     "Data date": "数据日期",
+    "Dashboard data date": "仪表盘数据日期",
     "GitHub": "GitHub",
     "copy markdown": "复制 markdown",
     "Copied": "已复制",
@@ -1220,9 +1221,9 @@ def _html_page(daily: pd.DataFrame, summary: dict[str, Any]) -> str:
             "</div>",
             "</div>",
             _summary_grid(summary),
+            _section("Latest Inputs", _latest_inputs_html(summary, daily)),
             _section("Market State Gauge", _regime_gauge(summary)),
             _section("Composite Score Trend", _score_trend_html(daily, summary)),
-            _section("Latest Inputs", _latest_inputs_html(summary, daily)),
             _section("Drivers", _list(summary.get("drivers", []))),
             _section("Risks", _list(summary.get("risks", []))),
             _section("Summary", _summary_paragraph(summary)),
@@ -1536,15 +1537,57 @@ def _summary_paragraph(summary: dict[str, Any]) -> str:
 
 def _latest_inputs_html(summary: dict[str, Any], daily: pd.DataFrame) -> str:
     as_of = _format_value(summary.get("as_of_date", ""))
-    inputs = summary.get("inputs", {})
+    inputs = _latest_input_values(summary)
     context_values = _current_input_values(daily, as_of)
     if isinstance(inputs, dict):
         context_values.update(inputs)
-    previous_values = _previous_input_values(daily, as_of)
+    previous_values = _previous_latest_input_values(daily, summary, as_of)
+    as_of_by_key = _latest_input_dates(summary, as_of)
     return (
-        f'<p class="panel-kicker">{_localized("Data date")}: {escape(as_of)}</p>'
-        f'{_input_grid(inputs, previous_values, as_of, context_values)}'
+        f'<p class="panel-kicker">{_localized("Dashboard data date")}: {escape(as_of)}</p>'
+        f'{_input_grid(inputs, previous_values, as_of, context_values, as_of_by_key)}'
     )
+
+
+def _latest_input_values(summary: dict[str, Any]) -> dict[str, Any]:
+    latest_inputs = summary.get("latest_inputs")
+    if isinstance(latest_inputs, dict) and latest_inputs:
+        values: dict[str, Any] = {}
+        for key, entry in latest_inputs.items():
+            if not isinstance(entry, dict) or "value" not in entry:
+                raise ValueError(f"latest_inputs[{key!r}] must contain value")
+            values[str(key)] = entry["value"]
+        return values
+    inputs = summary.get("inputs", {})
+    return inputs if isinstance(inputs, dict) else {}
+
+
+def _latest_input_dates(summary: dict[str, Any], default_as_of: str) -> dict[str, str]:
+    latest_inputs = summary.get("latest_inputs")
+    if not isinstance(latest_inputs, dict):
+        return {}
+    dates: dict[str, str] = {}
+    for key, entry in latest_inputs.items():
+        if not isinstance(entry, dict):
+            raise ValueError(f"latest_inputs[{key!r}] must be a dict")
+        dates[str(key)] = _format_value(entry.get("as_of_date", default_as_of))
+    return dates
+
+
+def _previous_latest_input_values(
+    daily: pd.DataFrame,
+    summary: dict[str, Any],
+    default_as_of: str,
+) -> dict[str, Any]:
+    latest_inputs = summary.get("latest_inputs")
+    if not isinstance(latest_inputs, dict):
+        return _previous_input_values(daily, default_as_of)
+    previous: dict[str, Any] = {}
+    for key, entry in latest_inputs.items():
+        if not isinstance(entry, dict):
+            continue
+        previous[str(key)] = _previous_input_value(daily, str(key), _format_value(entry.get("as_of_date", default_as_of)))
+    return previous
 
 
 def _current_time_value() -> tuple[str, str]:
@@ -1830,13 +1873,15 @@ def _input_grid(
     previous_values: dict[str, Any] | None = None,
     as_of: str = "",
     context_values: dict[str, Any] | None = None,
+    as_of_by_key: dict[str, str] | None = None,
 ) -> str:
     if not isinstance(values, dict) or not values:
         return "<p>None</p>"
     previous_values = previous_values or {}
     context_values = context_values or values
+    as_of_by_key = as_of_by_key or {}
     items = "".join(
-        _input_card_html(str(key), value, context_values, previous_values, as_of)
+        _input_card_html(str(key), value, context_values, previous_values, as_of_by_key.get(str(key), as_of))
         for key, value in values.items()
     )
     return f'<ul class="input-grid">{items}</ul>'
@@ -2027,6 +2072,26 @@ def _previous_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:
     if previous.empty:
         return {}
     return previous.iloc[0].drop(labels=["_date"]).to_dict()
+
+
+def _previous_input_value(daily: pd.DataFrame, key: str, as_of: str) -> Any:
+    if "date" not in daily.columns or key not in daily.columns:
+        return None
+    target = pd.to_datetime(as_of, errors="coerce")
+    if pd.isna(target):
+        return None
+    rows = daily.copy()
+    rows["_date"] = pd.to_datetime(rows["date"], errors="coerce")
+    previous = rows[rows["_date"] < target].sort_values("_date", ascending=False)
+    for _, row in previous.iterrows():
+        value = row.get(key)
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(numeric):
+            return value
+    return None
 
 
 def _current_input_values(daily: pd.DataFrame, as_of: str) -> dict[str, Any]:

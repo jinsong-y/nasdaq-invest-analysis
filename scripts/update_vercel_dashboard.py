@@ -23,6 +23,7 @@ REQUIRED_PUBLISHABLE_COLUMNS = (
     "ndxe_ndx",
     "sox_ndx",
 )
+LATEST_INPUT_COLUMNS = REQUIRED_PUBLISHABLE_COLUMNS
 BILINGUAL_MARKERS = (
     "Nasdaq 100 Market Regime Dashboard",
     "纳指100市场状态仪表盘",
@@ -96,6 +97,42 @@ def latest_publishable_market_date(path: Path) -> str:
     return max(dates)
 
 
+def latest_available_input_date(path: Path) -> str:
+    if not path.exists():
+        fail(f"market indicators CSV missing: {path}")
+    dates: list[str] = []
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames or []
+        required = ("date", *LATEST_INPUT_COLUMNS)
+        missing = [column for column in required if column not in fieldnames]
+        if missing:
+            fail(f"missing required latest input columns in {path}: {', '.join(missing)}")
+        for row in reader:
+            value = (row.get("date") or "").strip()
+            if not value:
+                continue
+            market_date = parse_market_date(value)
+            has_input = False
+            for column in LATEST_INPUT_COLUMNS:
+                dashboard_value = (row.get(column) or "").strip()
+                if not dashboard_value:
+                    continue
+                try:
+                    float(dashboard_value)
+                except ValueError:
+                    fail(
+                        f"invalid latest input value for {column} on {market_date}: "
+                        f"{dashboard_value!r}"
+                    )
+                has_input = True
+            if has_input:
+                dates.append(market_date)
+    if not dates:
+        fail(f"no latest input dates found in {path}")
+    return max(dates)
+
+
 def latest_published_date(latest_json_path: Path, snapshots_dir: Path) -> str | None:
     dates: list[str] = []
     if latest_json_path.exists():
@@ -111,6 +148,26 @@ def latest_published_date(latest_json_path: Path, snapshots_dir: Path) -> str | 
                 dates.append(parse_market_date(child.name))
             except RuntimeError:
                 continue
+    return max(dates) if dates else None
+
+
+def latest_published_input_date(latest_json_path: Path) -> str | None:
+    if not latest_json_path.exists():
+        return None
+    payload = json.loads(latest_json_path.read_text(encoding="utf-8"))
+    dates: list[str] = []
+    latest_inputs = payload.get("latest_inputs")
+    if isinstance(latest_inputs, dict):
+        for entry in latest_inputs.values():
+            if not isinstance(entry, dict):
+                continue
+            value = str(entry.get("as_of_date", "")).strip()
+            if value:
+                dates.append(parse_market_date(value))
+    if not dates:
+        value = str(payload.get("as_of_date", "")).strip()
+        if value:
+            dates.append(parse_market_date(value))
     return max(dates) if dates else None
 
 
@@ -213,11 +270,16 @@ def run_update(root: Path, *, fetch: bool) -> bool:
         run_command([sys.executable, "scripts/fetch_data.py"], cwd=root)
 
     publishable_date = latest_publishable_market_date(data_path)
+    latest_input_date = latest_available_input_date(data_path)
     published_date = latest_published_date(latest_json_path, snapshots_dir)
-    if not should_publish(publishable_date, published_date):
+    published_input_date = latest_published_input_date(latest_json_path)
+    dashboard_changed = should_publish(publishable_date, published_date)
+    inputs_changed = should_publish(latest_input_date, published_input_date)
+    if not dashboard_changed and not inputs_changed:
         print(
             f"No new market date. Latest publishable: {publishable_date}. "
-            f"Latest published: {published_date}."
+            f"Latest published: {published_date}. "
+            f"Latest input: {latest_input_date}. Published input: {published_input_date}."
         )
         print("PUBLISHED=false")
         return False
@@ -231,11 +293,12 @@ def run_update(root: Path, *, fetch: bool) -> bool:
         ],
         cwd=root,
     )
-    snapshot_dir = write_data_snapshot(root, publishable_date)
-    validate_snapshot(snapshot_dir)
+    if dashboard_changed:
+        snapshot_dir = write_data_snapshot(root, publishable_date)
+        validate_snapshot(snapshot_dir)
     sync_dashboard_to_public(report_dir, public_dir)
     validate_public_outputs(public_dir, publishable_date)
-    print(f"Published market regime dashboard for {publishable_date}.")
+    print(f"Published market regime dashboard for {publishable_date}. Latest input: {latest_input_date}.")
     print("PUBLISHED=true")
     return True
 

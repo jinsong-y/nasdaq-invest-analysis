@@ -199,6 +199,37 @@ class UpdateDashboardDateTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "no publishable market dates"):
                 update_vercel_dashboard.latest_publishable_market_date(path)
 
+    def test_latest_available_input_date_reads_latest_partial_input_date(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "market_indicators.csv"
+            self._write_dashboard_market_csv(
+                path,
+                [
+                    {
+                        "date": "2026-04-30",
+                        "ndx": "100",
+                        "vxn": "20",
+                        "vix": "15",
+                        "cnn_fear_greed": "50",
+                        "ndxe_ndx": "0.95",
+                        "sox_ndx": "0.40",
+                    },
+                    {
+                        "date": "2026-05-01",
+                        "ndx": "",
+                        "vxn": "",
+                        "vix": "",
+                        "cnn_fear_greed": "51",
+                        "ndxe_ndx": "",
+                        "sox_ndx": "",
+                    },
+                ],
+            )
+
+            result = update_vercel_dashboard.latest_available_input_date(path)
+
+        self.assertEqual("2026-05-01", result)
+
     def test_latest_published_date_prefers_latest_json_and_snapshots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -302,7 +333,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self.assertFalse((root / "public").exists())
             self.assertFalse((root / "data" / "snapshots" / "2026-05-04").exists())
 
-    def test_run_update_noops_when_raw_latest_is_newer_but_publishable_date_is_already_published(self):
+    def test_run_update_publishes_when_partial_latest_input_is_newer_than_dashboard_date(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_file(
@@ -318,16 +349,52 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
                 json.dumps({"as_of_date": "2026-04-30"}),
             )
 
-            with mock.patch.object(update_vercel_dashboard, "run_command") as run_command:
+            def fake_run_command(args, *, cwd):
+                self.assertEqual(root, cwd)
+                self.assertEqual(
+                    [
+                        sys.executable,
+                        "scripts/run_market_regime_dashboard.py",
+                        "--target-date",
+                        "2026-04-30",
+                    ],
+                    args,
+                )
+                self._write_file(
+                    root / "reports" / "market_regime" / "index.html",
+                    (
+                        "<!doctype html><title>Nasdaq 100 Market Regime Dashboard</title>"
+                        "<body>纳指100市场状态仪表盘"
+                        '<button data-language="en">English</button>'
+                        '<button data-language="zh">中文</button>'
+                        "</body>"
+                    ),
+                )
+                self._write_file(
+                    root / "reports" / "market_regime" / "latest.json",
+                    json.dumps(
+                        {
+                            "as_of_date": "2026-04-30",
+                            "latest_inputs": {
+                                "cnn_fear_greed": {"value": 51.0, "as_of_date": "2026-05-01"}
+                            },
+                        }
+                    ),
+                )
+                self._write_file(root / "reports" / "market_regime" / "daily_regimes.csv", "date,market_regime\n")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
                 output = io.StringIO()
                 with contextlib.redirect_stdout(output):
                     published = update_vercel_dashboard.run_update(root, fetch=False)
 
-            self.assertFalse(published)
-            run_command.assert_not_called()
-            self.assertIn("Latest publishable: 2026-04-30", output.getvalue())
-            self.assertIn("PUBLISHED=false", output.getvalue())
-            self.assertFalse((root / "public").exists())
+            self.assertTrue(published)
+            self.assertEqual(1, run_command.call_count)
+            self.assertIn("Published market regime dashboard for 2026-04-30", output.getvalue())
+            self.assertIn("Latest input: 2026-05-01", output.getvalue())
+            self.assertIn("PUBLISHED=true", output.getvalue())
+            self.assertTrue((root / "public" / "index.html").is_file())
+            self.assertFalse((root / "data" / "snapshots" / "2026-04-30").exists())
 
     def test_run_update_publishes_when_fetched_date_is_newer(self):
         with tempfile.TemporaryDirectory() as tmp:

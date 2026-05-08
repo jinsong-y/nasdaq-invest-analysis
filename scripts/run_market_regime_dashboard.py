@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src.market_regime.config import DashboardConfig
-from src.market_regime.model import classify_daily, latest_summary
+from src.market_regime.model import REQUIRED_COLUMNS, classify_daily, latest_summary
 from src.market_regime.report import write_dashboard_outputs
 from src.version_a.data import load_market_data
 from src.version_a.features import add_features
@@ -22,6 +23,15 @@ from src.version_a.features import add_features
 
 DATA_PATH = ROOT / "data" / "processed" / "market_indicators.csv"
 DEFAULT_OUTPUT = ROOT / "reports" / "market_regime"
+LATEST_INPUT_DEPENDENCIES = {
+    "cnn_ma5": ("cnn_fear_greed",),
+    "dist_sma": ("ndx",),
+    "sma": ("ndx",),
+    "vix_pctile": ("vix",),
+    "vxn_pctile": ("vxn",),
+    "ndxe_ma": ("ndxe_ndx",),
+    "sox_ma": ("sox_ndx",),
+}
 
 
 def load_recommended_config(path: Path) -> DashboardConfig:
@@ -73,9 +83,44 @@ def run_workflow(
         featured_for_summary = featured
     daily = classify_daily(featured_for_summary, config=config)
     summary = latest_summary(featured_for_summary, config=config)
+    summary["latest_inputs"] = latest_input_snapshot(featured, summary.get("inputs", {}).keys())
     if config_metadata is not None:
         summary["config_metadata"] = config_metadata
     write_dashboard_outputs(output_dir, daily, summary)
+
+
+def latest_input_snapshot(featured: pd.DataFrame, keys: Any = REQUIRED_COLUMNS) -> dict[str, dict[str, Any]]:
+    if "date" in featured.columns:
+        raise ValueError("featured data must use the market date index, not a date column")
+    rows = featured.sort_index()
+    snapshot: dict[str, dict[str, Any]] = {}
+    for key in keys:
+        if key not in rows.columns:
+            raise ValueError(f"latest input column missing: {key}")
+        dependency_dates = []
+        for dependency in LATEST_INPUT_DEPENDENCIES.get(str(key), (str(key),)):
+            if dependency not in rows.columns:
+                raise ValueError(f"latest input dependency missing for {key}: {dependency}")
+            dependency_values = _finite_series(rows[dependency])
+            if dependency_values.empty:
+                raise ValueError(f"latest input dependency has no finite values for {key}: {dependency}")
+            dependency_dates.append(dependency_values.index[-1])
+        latest_date = min(dependency_dates)
+        if not isinstance(latest_date, pd.Timestamp):
+            latest_date = pd.Timestamp(latest_date)
+        value = float(pd.to_numeric(pd.Series([rows.at[latest_date, key]]), errors="coerce").iloc[0])
+        if not math.isfinite(value):
+            raise ValueError(f"latest input column has no finite value for {key} on {latest_date.strftime('%Y-%m-%d')}")
+        snapshot[str(key)] = {
+            "value": value,
+            "as_of_date": latest_date.strftime("%Y-%m-%d"),
+        }
+    return snapshot
+
+
+def _finite_series(series: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(series, errors="coerce")
+    return numeric[numeric.apply(lambda value: pd.notna(value) and math.isfinite(float(value)))]
 
 
 def main() -> int:
