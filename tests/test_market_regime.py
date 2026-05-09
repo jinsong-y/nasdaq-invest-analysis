@@ -1186,6 +1186,44 @@ class MarketRegimeWorkflowTests(unittest.TestCase):
         self.assertEqual("2026-05-06", history["sma"][-1]["date"])
         self.assertEqual("2026-05-06", history["ndxe_ma"][-1]["date"])
 
+    def test_run_workflow_uses_intraday_overlay_for_latest_inputs_only(self):
+        from scripts.run_market_regime_dashboard import run_workflow
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output_dir = root / "dashboard"
+            latest_inputs_path = root / "latest_intraday_inputs.json"
+            latest_inputs_path.write_text(
+                json.dumps(
+                    {
+                        "market_date": "2026-05-08",
+                        "source": "yahoo_finance_chart",
+                        "raw_inputs": {
+                            "ndx": {"value": 28600.0, "symbol": "^NDX"},
+                            "vix": {"value": 17.5, "symbol": "^VIX"},
+                            "vxn": {"value": 23.7, "symbol": "^VXN"},
+                            "ndxe": {"value": 9530.0, "symbol": "^NDXE"},
+                            "sox": {"value": 11480.0, "symbol": "^SOX"},
+                            "ndxe_ndx": {"value": 9530.0 / 28600.0, "symbol": "^NDXE/^NDX"},
+                            "sox_ndx": {"value": 11480.0 / 28600.0, "symbol": "^SOX/^NDX"},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            run_workflow(
+                output_dir=output_dir,
+                target_date="2026-05-06",
+                latest_inputs_path=latest_inputs_path,
+            )
+
+            latest = json.loads((output_dir / "latest.json").read_text(encoding="utf-8"))
+            self.assertEqual("2026-05-06", latest["as_of_date"])
+            self.assertEqual("2026-05-08", latest["latest_inputs"]["ndx"]["as_of_date"])
+            self.assertEqual(28600.0, latest["latest_inputs"]["ndx"]["value"])
+            self.assertEqual("2026-05-08", latest["latest_input_history"]["ndx"][-1]["date"])
+
     def test_run_workflow_writes_outputs_for_complete_target_date(self):
         from scripts.run_market_regime_dashboard import run_workflow
 

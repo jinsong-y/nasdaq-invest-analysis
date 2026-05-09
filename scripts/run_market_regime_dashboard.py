@@ -23,6 +23,7 @@ from src.version_a.features import add_features
 
 DATA_PATH = ROOT / "data" / "processed" / "market_indicators.csv"
 DEFAULT_OUTPUT = ROOT / "reports" / "market_regime"
+DEFAULT_LATEST_INPUTS = ROOT / "data" / "processed" / "latest_intraday_inputs.json"
 LATEST_INPUT_DEPENDENCIES = {
     "cnn_ma5": ("cnn_fear_greed",),
     "dist_sma": ("ndx",),
@@ -65,9 +66,11 @@ def run_workflow(
     target_date: str | None = None,
     config: DashboardConfig | None = None,
     config_metadata: dict[str, Any] | None = None,
+    latest_inputs_path: Path | None = DEFAULT_LATEST_INPUTS,
 ) -> None:
     config = config or DashboardConfig()
     raw = load_market_data(data_path)
+    raw = apply_latest_inputs_overlay(raw, latest_inputs_path)
     featured = add_features(
         raw,
         sma_period=config.sma_period,
@@ -88,6 +91,38 @@ def run_workflow(
     if config_metadata is not None:
         summary["config_metadata"] = config_metadata
     write_dashboard_outputs(output_dir, daily, summary)
+
+
+def apply_latest_inputs_overlay(raw: pd.DataFrame, latest_inputs_path: Path | None) -> pd.DataFrame:
+    if latest_inputs_path is None or not latest_inputs_path.exists():
+        return raw
+    payload = json.loads(latest_inputs_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"latest inputs overlay must be a JSON object: {latest_inputs_path}")
+    market_date = pd.Timestamp(str(payload.get("market_date", "")))
+    raw_inputs = payload.get("raw_inputs")
+    if not isinstance(raw_inputs, dict) or not raw_inputs:
+        raise ValueError(f"latest inputs overlay missing raw_inputs: {latest_inputs_path}")
+    out = raw.copy()
+    if market_date not in out.index:
+        out.loc[market_date, :] = pd.NA
+    for key, entry in raw_inputs.items():
+        if key not in out.columns:
+            continue
+        if not isinstance(entry, dict) or "value" not in entry:
+            raise ValueError(f"latest inputs overlay entry missing value: {key}")
+        value = float(entry["value"])
+        if not math.isfinite(value):
+            raise ValueError(f"latest inputs overlay value must be finite: {key}")
+        out.loc[market_date, str(key)] = value
+    if "ndx" in out.columns and out.loc[market_date, "ndx"] not in ("", None):
+        ndx = float(out.loc[market_date, "ndx"])
+        if math.isfinite(ndx) and not math.isclose(ndx, 0.0):
+            if "ndxe" in out.columns and "ndxe_ndx" in out.columns and pd.notna(out.loc[market_date, "ndxe"]):
+                out.loc[market_date, "ndxe_ndx"] = float(out.loc[market_date, "ndxe"]) / ndx
+            if "sox" in out.columns and "sox_ndx" in out.columns and pd.notna(out.loc[market_date, "sox"]):
+                out.loc[market_date, "sox_ndx"] = float(out.loc[market_date, "sox"]) / ndx
+    return out.sort_index()
 
 
 def latest_input_snapshot(featured: pd.DataFrame, keys: Any = REQUIRED_COLUMNS) -> dict[str, dict[str, Any]]:
@@ -164,6 +199,7 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--data-path", type=Path, default=DATA_PATH)
     parser.add_argument("--target-date")
+    parser.add_argument("--latest-inputs-path", type=Path, default=DEFAULT_LATEST_INPUTS)
     parser.add_argument("--recommended-config-path", type=Path)
     args = parser.parse_args()
     config = None
@@ -177,6 +213,7 @@ def main() -> int:
         target_date=args.target_date,
         config=config,
         config_metadata=config_metadata,
+        latest_inputs_path=args.latest_inputs_path,
     )
     print(f"Wrote market regime dashboard to {args.output_dir / 'index.html'}")
     return 0

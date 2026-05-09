@@ -230,6 +230,15 @@ class UpdateDashboardDateTests(unittest.TestCase):
 
         self.assertEqual("2026-05-01", result)
 
+    def test_latest_available_intraday_input_date_reads_yahoo_snapshot_date(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "latest_intraday_inputs.json"
+            path.write_text(json.dumps({"market_date": "2026-05-08", "raw_inputs": {"ndx": {"value": 28600}}}))
+
+            result = update_vercel_dashboard.latest_available_intraday_input_date(path)
+
+        self.assertEqual("2026-05-08", result)
+
     def test_latest_published_date_prefers_latest_json_and_snapshots(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -440,6 +449,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self.assertEqual(
                 [
                     [sys.executable, "scripts/fetch_data.py"],
+                    [sys.executable, "scripts/fetch_yahoo_latest_inputs.py"],
                     [
                         sys.executable,
                         "scripts/run_market_regime_dashboard.py",
@@ -449,6 +459,67 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
                 ],
                 [call.args[0] for call in run_command.call_args_list],
             )
+
+    def test_run_update_publishes_when_intraday_input_is_newer_than_published_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-04")
+            self._write_file(
+                root / "reports" / "market_regime" / "latest.json",
+                json.dumps(
+                    {
+                        "as_of_date": "2026-05-04",
+                        "latest_inputs": {"ndx": {"value": 100.0, "as_of_date": "2026-05-04"}},
+                    }
+                ),
+            )
+            self._write_file(
+                root / "data" / "processed" / "latest_intraday_inputs.json",
+                json.dumps({"market_date": "2026-05-08", "raw_inputs": {"ndx": {"value": 28600.0}}}),
+            )
+
+            def fake_run_command(args, *, cwd):
+                self.assertEqual(root, cwd)
+                self.assertEqual(
+                    [
+                        sys.executable,
+                        "scripts/run_market_regime_dashboard.py",
+                        "--target-date",
+                        "2026-05-04",
+                    ],
+                    args,
+                )
+                self._write_file(
+                    root / "reports" / "market_regime" / "index.html",
+                    (
+                        "<!doctype html><title>Nasdaq 100 Market Regime Dashboard</title>"
+                        "<body>纳指100市场状态仪表盘"
+                        '<button data-language="en">English</button>'
+                        '<button data-language="zh">中文</button>'
+                        "</body>"
+                    ),
+                )
+                self._write_file(
+                    root / "reports" / "market_regime" / "latest.json",
+                    json.dumps(
+                        {
+                            "as_of_date": "2026-05-04",
+                            "latest_inputs": {"ndx": {"value": 28600.0, "as_of_date": "2026-05-08"}},
+                        }
+                    ),
+                )
+                self._write_file(root / "reports" / "market_regime" / "daily_regimes.csv", "date,market_regime\n")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    published = update_vercel_dashboard.run_update(root, fetch=False)
+
+            self.assertTrue(published)
+            self.assertEqual(1, run_command.call_count)
+            self.assertIn("Latest input: 2026-05-08", output.getvalue())
+            self.assertTrue((root / "public" / "index.html").is_file())
+            self.assertFalse((root / "data" / "snapshots" / "2026-05-04").exists())
 
     def test_run_update_does_not_mutate_public_when_snapshot_validation_fails(self):
         with tempfile.TemporaryDirectory() as tmp:

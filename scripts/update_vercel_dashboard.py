@@ -133,6 +133,34 @@ def latest_available_input_date(path: Path) -> str:
     return max(dates)
 
 
+def latest_available_intraday_input_date(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        fail(f"latest intraday inputs JSON must be an object: {path}")
+    value = str(payload.get("market_date", "")).strip()
+    if not value:
+        fail(f"latest intraday inputs missing market_date: {path}")
+    raw_inputs = payload.get("raw_inputs")
+    if not isinstance(raw_inputs, dict) or not raw_inputs:
+        fail(f"latest intraday inputs missing raw_inputs: {path}")
+    has_input = False
+    for key, entry in raw_inputs.items():
+        if not isinstance(entry, dict):
+            fail(f"latest intraday input {key} must be an object: {path}")
+        if "value" not in entry:
+            continue
+        try:
+            float(entry["value"])
+        except (TypeError, ValueError):
+            fail(f"invalid latest intraday input value for {key}: {entry.get('value')!r}")
+        has_input = True
+    if not has_input:
+        fail(f"latest intraday inputs have no values: {path}")
+    return parse_market_date(value)
+
+
 def latest_published_date(latest_json_path: Path, snapshots_dir: Path) -> str | None:
     dates: list[str] = []
     if latest_json_path.exists():
@@ -261,6 +289,7 @@ def validate_public_outputs(public_dir: Path, market_date: str) -> None:
 def run_update(root: Path, *, fetch: bool) -> bool:
     root = Path(root)
     data_path = root / "data" / "processed" / "market_indicators.csv"
+    latest_intraday_path = root / "data" / "processed" / "latest_intraday_inputs.json"
     latest_json_path = root / "reports" / "market_regime" / "latest.json"
     snapshots_dir = root / "data" / "snapshots"
     report_dir = root / "reports" / "market_regime"
@@ -268,9 +297,17 @@ def run_update(root: Path, *, fetch: bool) -> bool:
 
     if fetch:
         run_command([sys.executable, "scripts/fetch_data.py"], cwd=root)
+        run_command([sys.executable, "scripts/fetch_yahoo_latest_inputs.py"], cwd=root)
 
     publishable_date = latest_publishable_market_date(data_path)
-    latest_input_date = latest_available_input_date(data_path)
+    latest_input_date = max(
+        date
+        for date in [
+            latest_available_input_date(data_path),
+            latest_available_intraday_input_date(latest_intraday_path),
+        ]
+        if date is not None
+    )
     published_date = latest_published_date(latest_json_path, snapshots_dir)
     published_input_date = latest_published_input_date(latest_json_path)
     dashboard_changed = should_publish(publishable_date, published_date)

@@ -2,7 +2,9 @@ name: Update Market Regime Dashboard
 
 on:
   schedule:
-    - cron: "0 23 * * *"
+    - cron: "0 14 * * 1-5"
+    - cron: "0 17 * * 1-5"
+    - cron: "30 20 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -50,7 +52,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/raw/fred data/raw/cnn data/processed/market_indicators.csv data/processed/data_manifest.json docs/DATA_INVENTORY.md reports/market_regime public data/snapshots
+          git add data/raw/fred data/raw/cnn data/raw/yahoo data/processed/market_indicators.csv data/processed/data_manifest.json data/processed/latest_intraday_inputs.json docs/DATA_INVENTORY.md reports/market_regime public data/snapshots
           if git diff --cached --quiet; then
             echo "No staged changes after dashboard update."
             exit 0
