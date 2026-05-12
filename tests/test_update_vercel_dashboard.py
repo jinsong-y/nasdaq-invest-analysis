@@ -432,7 +432,7 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
             self.assertTrue((root / "public" / "index.html").is_file())
             self.assertTrue((root / "data" / "snapshots" / "2026-05-04" / "market_indicators.csv").is_file())
 
-    def test_run_update_fetches_before_date_detection_when_requested(self):
+    def test_run_update_fetches_core_data_before_date_detection_when_requested(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-03")
@@ -444,6 +444,33 @@ class UpdateDashboardWorkflowTests(unittest.TestCase):
 
             with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
                 published = update_vercel_dashboard.run_update(root, fetch=True)
+
+            self.assertTrue(published)
+            self.assertEqual(
+                [
+                    [sys.executable, "scripts/fetch_data.py"],
+                    [
+                        sys.executable,
+                        "scripts/run_market_regime_dashboard.py",
+                        "--target-date",
+                        "2026-05-04",
+                    ],
+                ],
+                [call.args[0] for call in run_command.call_args_list],
+            )
+
+    def test_run_update_fetches_intraday_data_only_when_requested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_minimal_root(root, market_date="2026-05-04", published_date="2026-05-03")
+
+            def fake_run_command(args, *, cwd):
+                self.assertEqual(root, cwd)
+                if args[1] == "scripts/run_market_regime_dashboard.py":
+                    self._write_generated_dashboard(root, "2026-05-04")
+
+            with mock.patch.object(update_vercel_dashboard, "run_command", side_effect=fake_run_command) as run_command:
+                published = update_vercel_dashboard.run_update(root, fetch=True, fetch_intraday=True)
 
             self.assertTrue(published)
             self.assertEqual(

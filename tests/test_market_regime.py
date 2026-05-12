@@ -1192,6 +1192,10 @@ class MarketRegimeWorkflowTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             output_dir = root / "dashboard"
+            data_path = root / "market_indicators.csv"
+            market_data = pd.read_csv(ROOT / "data" / "processed" / "market_indicators.csv")
+            market_data = market_data[market_data["date"] <= "2026-05-06"]
+            market_data.to_csv(data_path, index=False)
             latest_inputs_path = root / "latest_intraday_inputs.json"
             latest_inputs_path.write_text(
                 json.dumps(
@@ -1214,6 +1218,7 @@ class MarketRegimeWorkflowTests(unittest.TestCase):
 
             run_workflow(
                 output_dir=output_dir,
+                data_path=data_path,
                 target_date="2026-05-06",
                 latest_inputs_path=latest_inputs_path,
             )

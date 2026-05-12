@@ -286,7 +286,7 @@ def validate_public_outputs(public_dir: Path, market_date: str) -> None:
     validate_bilingual_dashboard(public_dir)
 
 
-def run_update(root: Path, *, fetch: bool) -> bool:
+def run_update(root: Path, *, fetch: bool, fetch_intraday: bool = False) -> bool:
     root = Path(root)
     data_path = root / "data" / "processed" / "market_indicators.csv"
     latest_intraday_path = root / "data" / "processed" / "latest_intraday_inputs.json"
@@ -297,6 +297,7 @@ def run_update(root: Path, *, fetch: bool) -> bool:
 
     if fetch:
         run_command([sys.executable, "scripts/fetch_data.py"], cwd=root)
+    if fetch_intraday:
         run_command([sys.executable, "scripts/fetch_yahoo_latest_inputs.py"], cwd=root)
 
     publishable_date = latest_publishable_market_date(data_path)
@@ -344,9 +345,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--fetch", action="store_true")
+    parser.add_argument("--fetch-intraday", action="store_true")
     args = parser.parse_args(argv)
     try:
-        run_update(args.root, fetch=args.fetch)
+        run_update(args.root, fetch=args.fetch, fetch_intraday=args.fetch_intraday)
     except Exception as exc:
         print(f"update_vercel_dashboard failed: {exc}", file=sys.stderr)
         return 1
