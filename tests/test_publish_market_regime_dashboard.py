@@ -55,7 +55,7 @@ class AutomaticPublishEntrypointTests(unittest.TestCase):
             self.assertEqual(before, after)
             run_command.assert_not_called()
             self.assertIn("No new Publishable Market Date", output.getvalue())
-            self.assertIn("PUBLISHED=false", output.getvalue())
+            self.assertNotIn("PUBLISHED=", output.getvalue())
 
     def test_publishes_new_market_date_directly_to_public_without_intraday_or_snapshots(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -97,14 +97,25 @@ class AutomaticPublishEntrypointTests(unittest.TestCase):
             with mock.patch.object(publish_market_regime_dashboard, "run_command", side_effect=fake_run_command):
                 output = io.StringIO()
                 with contextlib.redirect_stdout(output):
-                    published = publish_market_regime_dashboard.run_automatic_publish(root, fetch=False)
+                    result = publish_market_regime_dashboard.run_automatic_publish(root, fetch=False)
 
-            self.assertTrue(published)
+            self.assertTrue(result)
+            self.assertTrue(result.changed)
+            self.assertEqual("2026-05-04", result.market_date)
+            self.assertEqual(
+                (
+                    root / "public" / "index.html",
+                    root / "public" / "latest.json",
+                    root / "public" / "daily_regimes.csv",
+                ),
+                result.artifact_paths,
+            )
+            self.assertEqual("chore: publish market regime dashboard 2026-05-04", result.commit_message)
             self.assertTrue((root / "public" / "index.html").is_file())
             self.assertFalse((root / "reports" / "market_regime").exists())
             self.assertFalse((root / "data" / "snapshots").exists())
             self.assertIn("Published Market Regime Dashboard for 2026-05-04", output.getvalue())
-            self.assertIn("PUBLISHED=true", output.getvalue())
+            self.assertNotIn("PUBLISHED=", output.getvalue())
 
     def test_publishable_market_date_uses_only_complete_daily_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -200,6 +211,86 @@ class AutomaticPublishEntrypointTests(unittest.TestCase):
                 ],
                 calls,
             )
+
+    def test_commits_changed_published_artifacts_from_publish_result(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = publish_market_regime_dashboard.PublishResult(
+                changed=True,
+                market_date="2026-05-04",
+                artifact_paths=(
+                    root / "public" / "index.html",
+                    root / "public" / "latest.json",
+                    root / "public" / "daily_regimes.csv",
+                ),
+                commit_message="chore: publish market regime dashboard 2026-05-04",
+            )
+            calls: list[list[str]] = []
+
+            def fake_run_command(
+                args: list[str],
+                *,
+                cwd: Path,
+                allowed_exit_codes: tuple[int, ...] = (0,),
+            ) -> int:
+                self.assertEqual(root, cwd)
+                calls.append(args)
+                if args == ["git", "diff", "--cached", "--quiet"]:
+                    return 1
+                return 0
+
+            with mock.patch.object(publish_market_regime_dashboard, "run_command", side_effect=fake_run_command):
+                committed = publish_market_regime_dashboard.commit_published_artifacts(root, result, push=True)
+
+            self.assertTrue(committed)
+            self.assertEqual(
+                [
+                    ["git", "config", "user.name", "github-actions[bot]"],
+                    ["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"],
+                    [
+                        "git",
+                        "add",
+                        "--",
+                        str(root / "public" / "index.html"),
+                        str(root / "public" / "latest.json"),
+                        str(root / "public" / "daily_regimes.csv"),
+                    ],
+                    ["git", "diff", "--cached", "--quiet"],
+                    ["git", "commit", "-m", "chore: publish market regime dashboard 2026-05-04"],
+                    ["git", "push"],
+                ],
+                calls,
+            )
+
+    def test_main_can_publish_commit_and_push_from_one_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = publish_market_regime_dashboard.PublishResult(
+                changed=True,
+                market_date="2026-05-04",
+                artifact_paths=(root / "public" / "index.html",),
+                commit_message="chore: publish market regime dashboard 2026-05-04",
+            )
+
+            with (
+                mock.patch.object(
+                    publish_market_regime_dashboard,
+                    "run_automatic_publish",
+                    return_value=result,
+                ) as publish,
+                mock.patch.object(
+                    publish_market_regime_dashboard,
+                    "commit_published_artifacts",
+                    return_value=True,
+                ) as commit,
+            ):
+                status = publish_market_regime_dashboard.main(
+                    ["--root", str(root), "--skip-fetch", "--commit", "--push"]
+                )
+
+            self.assertEqual(0, status)
+            publish.assert_called_once_with(root, fetch=False)
+            commit.assert_called_once_with(root, result, push=True)
 
 
 if __name__ == "__main__":

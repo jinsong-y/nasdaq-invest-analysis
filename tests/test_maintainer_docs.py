@@ -42,6 +42,7 @@ class MaintainerDocsTests(unittest.TestCase):
                 )
                 self.assertIn("python scripts/publish_market_regime_dashboard.py", text)
                 self.assertNotIn("python scripts/publish_market_regime_dashboard.py --fetch", text)
+        self.assertIn("python scripts/publish_market_regime_dashboard.py --commit --push", self.maintainer_docs)
 
     def test_maintainer_docs_describe_public_only_commit_scope(self):
         for path, text in self.docs.items():

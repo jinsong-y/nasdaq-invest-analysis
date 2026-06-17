@@ -40,6 +40,12 @@ Maintainer command / 维护者命令：
 python scripts/publish_market_regime_dashboard.py
 ```
 
+GitHub Actions runs the same entrypoint with commit and push enabled:
+
+```bash
+python scripts/publish_market_regime_dashboard.py --commit --push
+```
+
 Automatic Publish commits only Published Artifacts under `public/`: `public/index.html`, `public/latest.json`, and `public/daily_regimes.csv`. Raw data, snapshots, processed data, and Research Reports are not committed by Automatic Publish. Research Reports remain manual/offline artifacts under `reports/` for backtests, robustness analysis, and project findings.
 
 Automatic Publish uses Daily Input to select a Publishable Market Date. If required Daily Input is missing or invalid, the run fails. If the current Published Artifact is already current, the run reports no-op instead of publishing a Stale Dashboard.

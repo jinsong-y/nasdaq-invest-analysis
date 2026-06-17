@@ -22,6 +22,12 @@ Maintainer command:
 python scripts/publish_market_regime_dashboard.py
 ```
 
+GitHub Actions runs:
+
+```bash
+python scripts/publish_market_regime_dashboard.py --commit --push
+```
+
 Automatic Publish commits only Published Artifacts under `public/`: `public/index.html`, `public/latest.json`, and `public/daily_regimes.csv`. Raw data, snapshots, processed data, and Research Reports are not committed by Automatic Publish. Research Reports remain manual/offline artifacts.
 
 Production deployment is GitHub-driven: commit and push, let Vercel auto-deploy, then verify `https://nasdaq-invest-analysis.vercel.app`. Do not deploy production from the local Vercel CLI.

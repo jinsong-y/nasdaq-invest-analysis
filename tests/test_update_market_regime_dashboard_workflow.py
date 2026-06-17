@@ -31,7 +31,7 @@ class UpdateMarketRegimeDashboardWorkflowTests(unittest.TestCase):
             crons,
         )
 
-        self.assertIn("python scripts/publish_market_regime_dashboard.py", self.workflow_text)
+        self.assertIn("python scripts/publish_market_regime_dashboard.py --commit --push", self.workflow_text)
         self.assertNotIn("scripts/update_vercel_dashboard.py", self.workflow_text)
 
         forbidden_workflow_references = [
@@ -44,15 +44,20 @@ class UpdateMarketRegimeDashboardWorkflowTests(unittest.TestCase):
             "docs/DATA_INVENTORY.md",
             "reports/",
             "latest_intraday_inputs",
+            "grep -q",
+            "GITHUB_OUTPUT",
+            "PUBLISHED=true",
+            "json.loads",
+            "public/latest.json",
+            "git commit",
+            "market_date=",
         ]
         for forbidden in forbidden_workflow_references:
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, self.workflow_text)
 
-        self.assertEqual(["git add -- public"], self._git_add_lines())
-        self.assertIn("git diff --cached --quiet", self.workflow_text)
-        self.assertIn('json.loads(Path("public/latest.json").read_text', self.workflow_text)
-        self.assertIn('git commit -m "chore: publish market regime dashboard ${market_date}"', self.workflow_text)
+        self.assertEqual([], self._git_add_lines())
+        self.assertNotIn("git diff --cached --quiet", self.workflow_text)
 
 
 if __name__ == "__main__":
