@@ -200,6 +200,7 @@ def main() -> int:
     parser.add_argument("--data-path", type=Path, default=DATA_PATH)
     parser.add_argument("--target-date")
     parser.add_argument("--latest-inputs-path", type=Path, default=DEFAULT_LATEST_INPUTS)
+    parser.add_argument("--no-latest-inputs-overlay", action="store_true")
     parser.add_argument("--recommended-config-path", type=Path)
     args = parser.parse_args()
     config = None
@@ -213,7 +214,7 @@ def main() -> int:
         target_date=args.target_date,
         config=config,
         config_metadata=config_metadata,
-        latest_inputs_path=args.latest_inputs_path,
+        latest_inputs_path=None if args.no_latest_inputs_overlay else args.latest_inputs_path,
     )
     print(f"Wrote market regime dashboard to {args.output_dir / 'index.html'}")
     return 0
